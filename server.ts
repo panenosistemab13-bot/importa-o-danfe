@@ -373,24 +373,30 @@ app.post("/api/parse-invoice", upload.single("file"), async (req, res) => {
 });
 
 // Endpoint to parse Cargo Document or text for ZPL info 100% locally & offline
-app.post("/api/parse-zpl-cargo", async (req, res) => {
+app.post("/api/parse-zpl-cargo", upload.single("file"), async (req, res) => {
   try {
-    const { fileBase64, mimeType, textInput } = req.body;
+    const { fileBase64, mimeType, textInput } = req.body || {};
 
     let fullText = textInput || "";
 
-    if (fileBase64 && mimeType && mimeType.includes("pdf")) {
+    let buffer: Buffer | null = null;
+    if (req.file) {
+      buffer = req.file.buffer;
+    } else if (fileBase64) {
+      buffer = Buffer.from(fileBase64, "base64");
+    }
+
+    if (buffer) {
       try {
-        const buffer = Buffer.from(fileBase64, "base64");
         const pdfData = await pdf(buffer);
-        fullText += "\n" + pdfData.text;
+        fullText += "\n" + (pdfData.text || "");
       } catch (pdfErr: any) {
         console.error("Erro ao extrair texto do PDF de carga:", pdfErr);
       }
     }
 
     // Extract 'Transporte' (10-digit number)
-    let transporte = "2600295733"; // Fallback default
+    let transporte = "";
     const transMatch = fullText.match(/\b(26\d{8}|\d{10})\b/);
     if (transMatch) {
       transporte = transMatch[1];
@@ -402,7 +408,7 @@ app.post("/api/parse-zpl-cargo", async (req, res) => {
     }
 
     // Extract 'Lote' (lots format like 15389.740, remessa value or code)
-    let lote = "15389.740"; // Fallback default
+    let lote = "";
     const loteMatch = fullText.match(/(?:LOTE|REMESSA|CARGA)[:.-]?\s*([A-Z0-9./-]+)/i);
     if (loteMatch && loteMatch[1]) {
       lote = loteMatch[1].trim();
@@ -415,7 +421,7 @@ app.post("/api/parse-zpl-cargo", async (req, res) => {
     }
 
     // Extract 'Volumes' (Count number)
-    let volumes = 40; // Fallback default
+    let volumes = 0;
     const volMatch = fullText.match(/(?:VOLUMES|VOLS|VOL|VOLUME|QTD|QUANTIDADE|PEÇAS|PECAS)[:.-]?\s*(\d+)/i);
     if (volMatch && volMatch[1]) {
       volumes = parseInt(volMatch[1], 10);
@@ -431,6 +437,11 @@ app.post("/api/parse-zpl-cargo", async (req, res) => {
     console.error("Erro ao extrair dados de carga ZPL:", error);
     res.status(500).json({ error: error.message || "Erro desconhecido ao processar dados de carga." });
   }
+});
+
+// Fallback for unmatched API routes - return JSON instead of falling back to SPA HTML
+app.all("/api/*", (req, res) => {
+  res.status(404).json({ error: `Rota API não encontrada: ${req.method} ${req.url}` });
 });
 
 // Configure Vite or Static Assets depending on Environment

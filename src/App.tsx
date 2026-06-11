@@ -65,9 +65,9 @@ export default function App() {
   const [copiedInvoice, setCopiedInvoice] = useState(false);
 
   // States for live edit of invoice summary
-  const [manualInvoiceNumber, setManualInvoiceNumber] = useState("2956383");
-  const [manualGrossWeight, setManualGrossWeight] = useState<number>(10280.413);
-  const [manualNetWeight, setManualNetWeight] = useState<number>(10280.413);
+  const [manualInvoiceNumber, setManualInvoiceNumber] = useState("");
+  const [manualGrossWeight, setManualGrossWeight] = useState<number>(0);
+  const [manualNetWeight, setManualNetWeight] = useState<number>(0);
 
   // State for ZPL Sequential Label Generator
   const [loadingZpl, setLoadingZpl] = useState(false);
@@ -75,266 +75,13 @@ export default function App() {
   const [zplInputType, setZplInputType] = useState<"paste" | "upload">("paste");
   const [zplTextInput, setZplTextInput] = useState("");
   const [zplCargoData, setZplCargoData] = useState<ZplCargoData>({
-    transporte: "2600295733",
-    lote: "15389.740",
-    volumes: 40,
+    transporte: "",
+    lote: "",
+    volumes: 0,
   });
   const [generatedZpls, setGeneratedZpls] = useState<string[]>([]);
   const [copiedZpl, setCopiedZpl] = useState(false);
   const [selectedZplPreviewIdx, setSelectedZplPreviewIdx] = useState(0);
-
-  // Populate dynamic default products matched to coffee logistics (identical to attached IMAGE.PNG layout but real data)
-  useEffect(() => {
-    const defaultInvoiceItems: ProductItem[] = [
-      {
-        code: "12031487",
-        description: "CAFE TG 3C RIT FRUTAS VM BOXP 20X250G",
-        quantity: 30,
-        unit: "CX",
-        valueUnit: 6.071,
-        valueTotal: 182.13,
-        weightEstimatePerUnit: 6.071,
-        calculatedWeight: 182.13,
-      },
-      {
-        code: "12031489",
-        description: "CAFE TG 3C RIT FRUTAS SEC BOXP 20X250G",
-        quantity: 30,
-        unit: "CX",
-        valueUnit: 6.071,
-        valueTotal: 182.13,
-        weightEstimatePerUnit: 6.071,
-        calculatedWeight: 182.13,
-      },
-      {
-        code: "12031591",
-        description: "CAFE TG 3C GOU SUL M 4S 20X250G",
-        quantity: 585,
-        unit: "CX",
-        valueUnit: 6.07,
-        valueTotal: 3550.95,
-        weightEstimatePerUnit: 6.07,
-        calculatedWeight: 3550.95,
-      },
-      {
-        code: "12032541",
-        description: "CAFE SOL 3C GOU LIO MOG P REF 24X40G",
-        quantity: 20,
-        unit: "CX",
-        valueUnit: 1.38,
-        valueTotal: 27.6,
-        weightEstimatePerUnit: 1.38,
-        calculatedWeight: 27.6,
-      },
-      {
-        code: "12032542",
-        description: "CAFE SOL 3C GOU LIO CERR MI REF 24X40G",
-        quantity: 25,
-        unit: "CX",
-        valueUnit: 1.38,
-        valueTotal: 34.5,
-        weightEstimatePerUnit: 1.38,
-        calculatedWeight: 34.5,
-      },
-      {
-        code: "12034096",
-        description: "CAFE CAPP 3C CLAS ABRA PT 24X200G",
-        quantity: 98,
-        unit: "CX",
-        valueUnit: 6.177,
-        valueTotal: 605.346,
-        weightEstimatePerUnit: 6.177,
-        calculatedWeight: 605.346,
-      },
-      {
-        code: "12034151",
-        description: "CAFE CAPP 3C CHOC SCH 30X20G",
-        quantity: 200,
-        unit: "CX",
-        valueUnit: 0.777,
-        valueTotal: 155.4,
-        weightEstimatePerUnit: 0.777,
-        calculatedWeight: 155.4,
-      },
-      {
-        code: "12034152",
-        description: "CAFE CAPP 3C CARAM SAL SCH 30X20G",
-        quantity: 416,
-        unit: "CX",
-        valueUnit: 0.777,
-        valueTotal: 323.232,
-        weightEstimatePerUnit: 0.777,
-        calculatedWeight: 323.232,
-      },
-      {
-        code: "12034156",
-        description: "BEBIDA LACT 3C CAPP ZR PET 6X260ML",
-        quantity: 396,
-        unit: "CX",
-        valueUnit: 1.8,
-        valueTotal: 712.8,
-        weightEstimatePerUnit: 1.8,
-        calculatedWeight: 712.8,
-      },
-      {
-        code: "12142000",
-        description: "CAFE SOL IGUA EF LT 12X200G",
-        quantity: 50,
-        unit: "CX",
-        valueUnit: 4.2,
-        valueTotal: 210.0,
-        weightEstimatePerUnit: 4.2,
-        calculatedWeight: 210.0,
-      },
-      {
-        code: "12142015",
-        description: "CAFE SOL IGUA GRAN CLAS VID 24X100G",
-        quantity: 90,
-        unit: "CX",
-        valueUnit: 9.36,
-        valueTotal: 842.4,
-        weightEstimatePerUnit: 9.36,
-        calculatedWeight: 842.4,
-      },
-      {
-        code: "12151070",
-        description: "CAPSULA CAFE PIMP ESPR RJ 8X10X8G",
-        quantity: 50,
-        unit: "CX",
-        valueUnit: 1.159,
-        valueTotal: 57.95,
-        weightEstimatePerUnit: 1.159,
-        calculatedWeight: 57.95,
-      },
-      {
-        code: "12151084",
-        description: "CAPSULA CAFE TRES ID COF ALEX A 8X10X8G",
-        quantity: 50,
-        unit: "CX",
-        valueUnit: 1.159,
-        valueTotal: 57.95,
-        weightEstimatePerUnit: 1.159,
-        calculatedWeight: 57.95,
-      },
-      {
-        code: "12151087",
-        description: "CAPSULA CAFE 3C PORT OB SOLT PIP 8X10X8G",
-        quantity: 200,
-        unit: "CX",
-        valueUnit: 1.159,
-        valueTotal: 231.8,
-        weightEstimatePerUnit: 1.159,
-        calculatedWeight: 231.8,
-      },
-      {
-        code: "12151113",
-        description: "CAPSULA CAFE 3C STAR WARS M YODA 8X10X8G",
-        quantity: 435,
-        unit: "CX",
-        valueUnit: 1.159,
-        valueTotal: 504.165,
-        weightEstimatePerUnit: 1.159,
-        calculatedWeight: 504.165,
-      },
-      {
-        code: "12151115",
-        description: "CAPSULA CAFE 3C DECAF ALU 10X10X5,6G",
-        quantity: 500,
-        unit: "CX",
-        valueUnit: 0.949,
-        valueTotal: 474.5,
-        weightEstimatePerUnit: 0.949,
-        calculatedWeight: 474.5,
-      },
-      {
-        code: "12151153",
-        description: "KIT CAPS CAFE 3C C MI ALU 2X10X5G",
-        quantity: 100,
-        unit: "CX",
-        valueUnit: 3.687,
-        valueTotal: 368.7,
-        weightEstimatePerUnit: 3.687,
-        calculatedWeight: 368.7,
-      },
-      {
-        code: "12151159",
-        description: "CAPSULA CAFE 3C TRES HONDUR 8X10X8G",
-        quantity: 100,
-        unit: "CX",
-        valueUnit: 1.159,
-        valueTotal: 115.9,
-        weightEstimatePerUnit: 1.159,
-        calculatedWeight: 115.9,
-      },
-      {
-        code: "12153006",
-        description: "CAPSULA CHA 3C CAMOMILA 8X10X2,5G",
-        quantity: 50,
-        unit: "CX",
-        valueUnit: 0.722,
-        valueTotal: 36.1,
-        weightEstimatePerUnit: 0.722,
-        calculatedWeight: 36.1,
-      },
-      {
-        code: "12153012",
-        description: "CAPSULA CHA TRES MACA VD/CRANB 8X10X3G",
-        quantity: 435,
-        unit: "CX",
-        valueUnit: 0.756,
-        valueTotal: 328.86,
-        weightEstimatePerUnit: 0.756,
-        calculatedWeight: 328.86,
-      },
-      {
-        code: "12154009",
-        description: "CAPSULA CAFE CAPP 3C 8X10X11G",
-        quantity: 435,
-        unit: "CX",
-        valueUnit: 1.2,
-        valueTotal: 522.0,
-        weightEstimatePerUnit: 1.2,
-        calculatedWeight: 522.0,
-      },
-      {
-        code: "12154019",
-        description: "CAPSULA CAPP VEG 3C 8X10X11G",
-        quantity: 130,
-        unit: "CX",
-        valueUnit: 1.2,
-        valueTotal: 156.0,
-        weightEstimatePerUnit: 1.2,
-        calculatedWeight: 156.0,
-      },
-      {
-        code: "20911462",
-        description: "CAFE SOL 3C PO EF REF 24X40G",
-        quantity: 240,
-        unit: "CX",
-        valueUnit: 1.14,
-        valueTotal: 273.6,
-        weightEstimatePerUnit: 1.14,
-        calculatedWeight: 273.6,
-      },
-      {
-        code: "20911496",
-        description: "CAFE SOL 3C PO EF REF 12X40G",
-        quantity: 480,
-        unit: "CX",
-        valueUnit: 0.68,
-        valueTotal: 326.4,
-        weightEstimatePerUnit: 0.68,
-        calculatedWeight: 326.4,
-      }
-    ];
-
-    setInvoiceData({
-      invoiceNumber: "2956383",
-      totalGrossWeight: 10280.413,
-      totalNetWeight: 10280.413,
-      items: defaultInvoiceItems,
-    });
-  }, []);
 
   // Sync state variables with current invoice when it triggers
   useEffect(() => {
@@ -539,21 +286,24 @@ export default function App() {
     setInvoiceError(null);
 
     try {
-      const base64Clean = await fileToBase64(file);
-      const mime = getMimeType(file);
+      // Send as native FormData file upload (failsafe, avoids base64 payload size restrictions)
+      const formData = new FormData();
+      formData.append("file", file);
 
       const response = await fetch("/api/parse-invoice", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileBase64: base64Clean,
-          mimeType: mime,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
-        const errRes = await response.json();
-        throw new Error(errRes.error || "Erro no parsing do arquivo.");
+        let errMessage = "Erro no parsing do arquivo.";
+        try {
+          const errRes = await response.json();
+          errMessage = errRes.error || errRes.message || errMessage;
+        } catch (jsonErr) {
+          errMessage = `Erro do servidor (Status ${response.status}): ${response.statusText}`;
+        }
+        throw new Error(errMessage);
       }
 
       const data: InvoiceData = await response.json();
@@ -912,22 +662,25 @@ export default function App() {
     setZplError(null);
 
     try {
-      const base64Clean = await fileToBase64(file);
-      const mime = getMimeType(file);
+      // Send as native FormData file upload
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("textInput", zplTextInput);
 
       const response = await fetch("/api/parse-zpl-cargo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileBase64: base64Clean,
-          mimeType: mime,
-          textInput: zplTextInput,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
-        const errRes = await response.json();
-        throw new Error(errRes.error || "Falha ao processar arquivo.");
+        let errMessage = "Falha ao processar arquivo.";
+        try {
+          const errRes = await response.json();
+          errMessage = errRes.error || errRes.message || errMessage;
+        } catch (jsonErr) {
+          errMessage = `Erro do servidor (Status ${response.status}): ${response.statusText}`;
+        }
+        throw new Error(errMessage);
       }
 
       const data = await response.json();
