@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Automação Logística de Notas Fiscais e ZPL",
+  "description": "Importador inteligente de Notas Fiscais para planilhas e gerador de etiquetas ZPL sequenciais para expedição.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
