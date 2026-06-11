@@ -398,31 +398,19 @@ app.post("/api/parse-invoice", upload.single("file"), async (req, res) => {
       });
     }
 
-    // FORMATAÇÃO DO RETORNO: 19 campos separados por tabulação (\t) em uma única linha contínua
-    let formattedWeight = totalGrossWeight.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
-    const fields = [
-      "ATÉ 12H",                        // 1. Horário Contratação
-      "ATÉ 13H",                        // 2. Horário Faturamento
-      "16:15",                          // 3. Horário Entrada
-      "19:00",                          // 4. Horário Fim Carregamento
-      "PALET",                          // 5. Tipo de Carga
-      "3050",                           // 6. Ordem
-      "B - 31",                         // 7. Janela / Liberação
-      dataEmissao,                      // 8. Data Expedição
-      dataEmissao,                      // 9. Data Janela
-      String(invoiceNumber),            // 10. Número da Nota Fiscal
-      placaCavalo,                      // 11. Placa Cavalo
-      emitente,                         // 12. Transportadora (Emitente)
-      placaCarreta,                     // 13. Placa Carreta
-      destino,                          // 14. Destino
-      formattedWeight,                  // 15. Peso Bruto / Tons
-      "1",                              // 16. Nº Rodas/Status
-      "NÃO",                            // 17. Estivada?
-      observacoes,                      // 18. Observações PCP
-      "Pendente"                        // 19. Status
-    ];
+    // Formata o peso de volta com o padrão brasileiro com 3 casas decimais
+    let formattedWeight = totalGrossWeight.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    const weightForLines = `${formattedWeight} KG`;
 
-    const textToCopy = fields.join("\t");
+    // Loop de produtos e máscara de colunas exata para planilhas:
+    // [Número da Nota] \t\t\t [Código + Descrição do Item] \t\t\t [Quantidade + UN] \t\t [PESO BRUTO TOTAL DA NOTA]
+    const productLines = items.map(item => {
+      const mat = `${item.code} ${item.description}`.trim().toUpperCase();
+      const qtyUnit = `${item.quantity} ${item.unit}`.trim().toUpperCase();
+      return `${invoiceNumber}\t\t\t${mat}\t\t\t${qtyUnit}\t\t${weightForLines}`;
+    });
+
+    const textToCopy = productLines.join("\n");
 
     res.json({
       success: true,
