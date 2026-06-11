@@ -1260,13 +1260,39 @@ export default function App() {
                   <div>
                     <h3 className="font-display font-bold text-2xl text-[#422119]">Texto para Copiar e Colar</h3>
                     <p className="text-xs text-[#6e4e37] font-semibold">
-                      Tabela com colunas alinhadas para rateio de volume (Pronto para copiar e colar na planilha)
+                      Selecione o formato para rateio de volume ou logística (fácil de colar no Excel/planilhas)
                     </p>
+                  </div>
+
+                  {/* Elegant Retro Format Selector */}
+                  <div className="flex items-center space-x-2 bg-[#ebd8b1]/30 p-1 rounded-lg border border-[#c49265]/40 self-start xl:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setCopyFormat("products")}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+                        copyFormat === "products"
+                          ? "bg-[#4a2e1d] text-white shadow"
+                          : "text-[#543b24] hover:bg-[#ebd8b1]/50"
+                      }`}
+                    >
+                      📋 Tabela por SKU
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCopyFormat("logistics")}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+                        copyFormat === "logistics"
+                          ? "bg-[#bda16d] text-[#2d1e08] shadow border border-[#59452b]"
+                          : "text-[#543b24] hover:bg-[#ebd8b1]/50"
+                      }`}
+                    >
+                      🚚 Registro de Logística
+                    </button>
                   </div>
                   
                   {/* Brass Key style trigger button */}
                   <button
-                    onClick={() => copyToClipboard(generateSpreadsheetText())}
+                    onClick={() => copyToClipboard(copyFormat === "products" ? generateSpreadsheetText() : generateLogisticsText())}
                     className={`px-6 py-4.5 rounded-xl font-bold text-sm shadow-md transition flex items-center gap-3 transform hover:scale-105 active:scale-95 ${
                       copiedInvoice
                         ? "bg-gradient-to-b from-[#4e5f38] to-[#2b3a1a] text-white border-2 border-[#769159]"
@@ -1283,17 +1309,17 @@ export default function App() {
                 {/* Chalkboard Display Area */}
                 <div className="chalkboard-container p-6 rounded-3xl relative">
                   {/* Visual chalk tray on chalkboard bottom */}
-                  <div className="absolute bottom-[-14px] right-8 bg-[#fcdbb0] px-4 py-1.5 rounded-md border border-[#c49265] text-[10px] font-bold text-[#5c3e21] shadow-md flex items-center space-x-1">
-                    <span className="w-3 h-1.5 bg-white rounded-full inline-block" />
-                    <span>Giz Branco (Tabela por SKU)</span>
+                  <div className="absolute bottom-[-14px] right-8 bg-[#fcdbb0] px-4 py-1.5 rounded-md border border-[#c49265] text-[10px] font-bold text-[#5c3e21] shadow-md flex items-center space-x-1 select-none">
+                    <span className={`w-3 h-1.5 rounded-full inline-block ${copyFormat === "products" ? "bg-white" : "bg-yellow-400"}`} />
+                    <span>{copyFormat === "products" ? "Giz Branco (Tabela por SKU)" : "Giz Amarelo (Registro de Logística)"}</span>
                   </div>
 
                   <div className="overflow-x-auto">
                     <textarea
                       readOnly
-                      value={generateSpreadsheetText()}
-                      placeholder="Os dados formatados para planilha apareceram aqui..."
-                      rows={calculatedItems.length ? Math.min(12, Math.max(5, calculatedItems.length)) : 5}
+                      value={copyFormat === "products" ? generateSpreadsheetText() : generateLogisticsText()}
+                      placeholder="Os dados formatados para planilha aparecerão aqui..."
+                      rows={copyFormat === "products" && calculatedItems.length ? Math.min(12, Math.max(5, calculatedItems.length)) : 5}
                       className="w-full bg-[#1e2a22] text-[#fbf5e6] font-mono text-xs leading-6 p-4 rounded-xl border border-white/5 shadow-inner focus:outline-none focus:ring-1 focus:ring-[#8cd0a3] resize-none overflow-y-auto"
                       style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
                       onClick={(e) => (e.target as HTMLTextAreaElement).select()}
