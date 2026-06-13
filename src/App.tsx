@@ -314,32 +314,115 @@ export default function App() {
 
       // Carrega o PDF na memória do navegador utilizando pdf.js
       const pdf = await pdfjsLib.getDocument(typedarray).promise;
-      let textoCompleto = "";
+      
+      // Helper function to reconstruct vertical page lines with high visual fidelity
+      const reconstructLines = (items: any[]): string[] => {
+        if (!items || items.length === 0) return [];
 
-      // Varre todas as páginas do DANFE carregado
+        // Filter out completely empty items
+        const validItems = items.filter(
+          (item) => item && typeof item.str === "string" && item.str.trim() !== ""
+        );
+
+        if (validItems.length === 0) return [];
+
+        // Group items into lines based on Y coordinate with tolerance
+        const tolerance = 7; // Tolerance vertical in points for columns printed on same visual line
+        const linesList: { y: number; items: any[] }[] = [];
+
+        validItems.forEach((item) => {
+          const y = item.transform[5]; // Y-coordinate of the item on page
+          
+          let foundLine = linesList.find((line) => Math.abs(line.y - y) <= tolerance);
+          if (foundLine) {
+            foundLine.items.push(item);
+            foundLine.y = (foundLine.y * (foundLine.items.length - 1) + y) / foundLine.items.length;
+          } else {
+            linesList.push({ y, items: [item] });
+          }
+        });
+
+        // Sort lines by Y descending (from top of page to bottom)
+        linesList.sort((a, b) => b.y - a.y);
+
+        // For each line, sort items by X ascending (from left to right)
+        return linesList.map((line) => {
+          line.items.sort((a, b) => a.transform[4] - b.transform[4]);
+          return line.items.map((item) => item.str).join(" ");
+        });
+      };
+
+      // Collect reconstructed lines across all pages
+      let allReconstructedLines: string[] = [];
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const textItems = textContent.items.map((item: any) => item.str);
-        textoCompleto += textItems.join(" ") + "\n";
+        const pageLines = reconstructLines(textContent.items);
+        allReconstructedLines.push(...pageLines);
       }
+
+      const textoCompleto = allReconstructedLines.join("\n");
 
       // --- LÓGICA DE EXTRAÇÃO DOS DADOS REAIS DO DANFE ---
 
       // 1. Número da Nota Fiscal (Ex: 2957334)
-      let numeroNota = "2957334";
-      const matchNota = textoCompleto.match(/(?:No\.00|N[º°]|N\.º|No\.)\s*(\d+[\d\.]*)/i);
-      if (matchNota) {
-        const cleanedNota = matchNota[1].replace(/\./g, '').trim();
-        numeroNota = parseInt(cleanedNota, 10).toString();
+      let numeroNota = "";
+      
+      // Try to match standard "Nº 123.456" or "No. 123456"
+      const matchNota1 = textoCompleto.match(/(?:S[EÉ]RIE\s+\d+\s+)?(?:N[º°eE]|N\.º|No\.?|NF-E)\s*[:.-]?\s*([0-9\s.-]+)/i);
+      if (matchNota1) {
+        const cleanedNota = matchNota1[1].replace(/[^0-9]/g, '').trim();
+        if (cleanedNota) {
+          numeroNota = parseInt(cleanedNota, 10).toString();
+        }
+      }
+      
+      if (!numeroNota) {
+        // Look for 9-digit sequence patterns like 002.957.334
+        const matchNota2 = textoCompleto.match(/\b(\d{1,3}(?:\.\d{3}){2})\b/);
+        if (matchNota2) {
+          numeroNota = parseInt(matchNota2[1].replace(/\./g, ''), 10).toString();
+        }
+      }
+      
+      if (!numeroNota) {
+        const matchNota3 = textoCompleto.match(/(?:NF|NOTA|NF-E)\s*#?\s*(\d+)/i);
+        if (matchNota3) {
+          numeroNota = parseInt(matchNota3[1], 10).toString();
+        }
+      }
+
+      if (!numeroNota) {
+        numeroNota = "2957334"; // Default fallback
       }
 
       // 2. Peso Bruto Total da Nota (Ex: 15389,740 KG)
-      let pesoBrutoTotal = "15389,740 KG";
-      const matchPeso = textoCompleto.match(/(?:PESO\s+BRUTO|PESO\s+BRUTO\s*\(KG\)|VOLUMES)\s*([\d\.,]+)/i);
-      if (matchPeso) {
-        // Mantém a formatação de milhar sem o ponto para ficar limpo
-        pesoBrutoTotal = matchPeso[1].replace(/\./g, '').trim() + " KG";
+      let pesoBrutoTotal = "";
+      
+      // Look for PESO BRUTO followed closely by a weight number
+      const pesoMatches = textoCompleto.match(/(?:PESO\s+BRUTO|PESO\s+BRUTO\s*\(KG\))[\s\S]{1,100}?(\d{1,3}(?:\.\d{3})*,\d{3}|\d+,\d{3})/i);
+      if (pesoMatches) {
+        pesoBrutoTotal = pesoMatches[1].trim() + " KG";
+      }
+
+      if (!pesoBrutoTotal) {
+        // Look for standard Brazilian weight formatting e.g. 15.389,740 or 10.280,413
+        const possibleWeights = textoCompleto.match(/\b\d{1,3}\.\d{3},\d{3}\b/g);
+        if (possibleWeights && possibleWeights.length > 0) {
+          pesoBrutoTotal = possibleWeights[0].trim() + " KG";
+        }
+      }
+
+      if (!pesoBrutoTotal) {
+        // Look for simpler decimal weights
+        const possibleSimpleWeights = textoCompleto.match(/\b\d+,\d{3}\b/g);
+        if (possibleSimpleWeights && possibleSimpleWeights.length > 0) {
+          pesoBrutoTotal = possibleSimpleWeights[0].trim() + " KG";
+        }
+      }
+
+      if (!pesoBrutoTotal) {
+        pesoBrutoTotal = "15389,740 KG"; // Default fallback
       }
 
       // Converte o peso para valor numérico para impulsionar os painéis de controle
@@ -350,7 +433,6 @@ export default function App() {
       let itemsList: ProductItem[] = [];
 
       // Dicionários padrão contendo os SKUs oficiais da Três Corações
-      const codigosPadrao = ["12031025", "12031150", "12031214", "12031513", "12031514", "12034003", "12034113", "12034126", "12034186", "12200135", "12200187"];
       const nomesPadrao: { [key: string]: string } = {
         "12031025": "CAFE TM 3C TRAD INT SPACK 10X500G",
         "12031150": "CAFE TORRADO EM GRAO 3CORACOES GOURMET ORGANICO 4 SOLDAS 20X250G",
@@ -362,67 +444,162 @@ export default function App() {
         "12034126": "BEBIDA LACTEA CAPPUCCINO POWER 3CORACOES DOCE DE LEITE 12X250ML",
         "12034186": "BEBIDA LACTEA 3CORACOES POWER BAUNILHA FABRICA JUSSARA 12X250ML",
         "12200135": "SUPLEMENTO ALIMENTAR JUNGLE ENDURANCE LIMONADA 6X500ML",
-        "12200187": "ALIMENTO JUNGLE TROPICAL LOW CARB 6X14X5G"
-      };
-      const qtdsPadrao: { [key: string]: string } = {
-        "12031025": "1080 CX", "12031150": "168 CX", "12031214": "324 CX",
-        "12031513": "20 CX", "12031514": "6 CX", "12034003": "280 CX",
-        "12034113": "1188 CX", "12034126": "20 CX", "12034186": "518 CX",
-        "12200135": "200 FD", "12200187": "20 CX"
+        "12200187": "ALIMENTO JUNGLE TROPICAL LOW CARB 6X14X5G",
+        "12031487": "CAFE TG 3C RIT FRUTAS VM BOXP 20X250G",
+        "12031489": "CAFE TG 3C RIT FRUTAS SEC BOXP 20X250G",
+        "12031591": "CAFE TG 3C GOU SUL M 4S 20X250G",
+        "12032541": "CAFE SOL 3C GOU LIO MOG P REF 24X40G",
+        "12032542": "CAFE SOL 3C GOU LIO CERR MI REF 24X40G",
+        "12034096": "CAFE CAPP 3C CLAS ABRA PT 24X200G",
+        "12034151": "CAFE CAPP 3C CHOC SCH 30X20G",
+        "12034152": "CAFE CAPP 3C CARAM SAL SCH 30X20G",
+        "12034156": "BEBIDA LACT 3C CAPP ZR PET 6X260ML",
+        "12142000": "CAFE SOL IGUA EF LT 12X200G",
+        "12142015": "CAFE SOL IGUA GRAN CLAS VID 24X100G",
+        "12151070": "CAPSULA CAFE PIMP ESPR RJ 8X10X8G",
+        "12151084": "CAPSULA CAFE TRES ID COF ALEX A 8X10X8G",
+        "12151087": "CAPSULA CAFE 3C PORT OB SOLT PIP 8X10X8G",
+        "12151113": "CAPSULA CAFE 3C STAR WARS M YODA 8X10X8G",
+        "12151115": "CAPSULA CAFE 3C DECAF ALU 10X10X5,6G",
+        "12151153": "KIT CAPS CAFE 3C C MI ALU 2X10X5G",
+        "12151159": "CAPSULA CAFE 3C TRES HONDUR 8X10X8G",
+        "12153006": "CAPSULA CHA 3C CAMOMILA 8X10X2,5G",
+        "12153012": "CAPSULA CHA TRES MACA VD/CRANB 8X10X3G",
+        "12154009": "CAPSULA CAFE CAPP 3C 8X10X11G",
+        "12154019": "CAPSULA CAPP VEG 3C 8X10X11G",
+        "20911462": "CAFE SOL 3C PO EF REF 24X40G",
+        "20911496": "CAFE SOL 3C PO EF REF 12X40G"
       };
 
-      // Realiza a varredura inteligente baseada nos códigos padrão do DANFE
-      codigosPadrao.forEach((codigo) => {
-        if (textoCompleto.includes(codigo)) {
-          const descStr = nomesPadrao[codigo];
-          const qtdStrCombined = qtdsPadrao[codigo] || "1 CX";
-          const [parsedQtd, parsedUnit] = qtdStrCombined.split(" ");
-          const qtyVal = parseInt(parsedQtd, 10) || 1;
-          const unitStr = parsedUnit || "CX";
+      const pesosProdPadrao: { [key: string]: number } = {
+        "12031025": 5.0,
+        "12031150": 5.0,
+        "12031214": 10.0,
+        "12031513": 1.2,
+        "12031514": 1.2,
+        "12034003": 1.0,
+        "12034113": 1.56,
+        "12034126": 3.0,
+        "12034186": 3.0,
+        "12200135": 3.0,
+        "12200187": 0.84,
+        "12031487": 5.0,
+        "12031489": 5.0,
+        "12031591": 5.0,
+        "12032541": 0.96,
+        "12032542": 0.96,
+        "12034096": 4.8,
+        "12034151": 0.6,
+        "12034152": 0.6,
+        "12034156": 1.56,
+        "12142000": 2.4,
+        "12142015": 2.4,
+        "12151070": 0.64,
+        "12151084": 0.64,
+        "12151087": 0.64,
+        "12151113": 0.64,
+        "12151115": 0.56,
+        "12151153": 0.1,
+        "12151159": 0.64,
+        "12153006": 0.2,
+        "12153012": 0.24,
+        "12154009": 0.88,
+        "12154019": 0.88,
+        "20911462": 0.96,
+        "20911496": 0.48
+      };
 
-          itemsList.push({
-            code: codigo,
-            description: descStr.toUpperCase(),
-            quantity: qtyVal,
-            unit: unitStr,
-            valueUnit: 10.0,
-            valueTotal: 10.0 * qtyVal,
-            weightEstimatePerUnit: 2.5,
-            calculatedWeight: parseFloat((qtyVal * 2.5).toFixed(3))
-          });
+      // Advanced scanner matching any line that begins optionally with a sequence number,
+      // followed by a 6-14 digit product SKU.
+      const regexLinhaProduto = /^\s*(?:\d+\s+)?(\d{6,14})\s+(.+)/;
+
+      allReconstructedLines.forEach((linha) => {
+        const trimmed = linha.trim();
+        const match = trimmed.match(regexLinhaProduto);
+        if (!match) return;
+
+        const sku = match[1];
+        const restoLinha = match[2].trim();
+
+        // Safety: verify if this line contains a standard package/unit of measure
+        // (CX, UN, FD, KG, etc) to rule out false positive number sequences
+        const hasUnit = /\b(CX|UN|FD|KG|PCT|LT|CJ|PC)\b/i.test(restoLinha);
+        if (!hasUnit) return;
+
+        // 1. Locate Quantity and Unit of Measure
+        let qty = 1;
+        let unit = "CX";
+        
+        const regexQtdBefore = /\b(\d+[\d\.,]*)\s*(CX|UN|FD|KG|PCT|LT|CJ|PC)\b/i;
+        const regexQtdAfter = /\b(CX|UN|FD|KG|PCT|LT|CJ|PC)\s+(\d+[\d\.,]*)\b/i;
+
+        const matchBefore = restoLinha.match(regexQtdBefore);
+        const matchAfter = restoLinha.match(regexQtdAfter);
+
+        let idxMatch = -1;
+        let matchedText = "";
+
+        if (matchBefore) {
+          const rawQtyStr = matchBefore[1].replace(/\./g, "").replace(",", ".");
+          qty = Math.round(parseFloat(rawQtyStr)) || 1;
+          unit = matchBefore[2].toUpperCase();
+          idxMatch = restoLinha.indexOf(matchBefore[0]);
+          matchedText = matchBefore[0];
+        } else if (matchAfter) {
+          const rawQtyStr = matchAfter[2].replace(/\./g, "").replace(",", ".");
+          qty = Math.round(parseFloat(rawQtyStr)) || 1;
+          unit = matchAfter[1].toUpperCase();
+          idxMatch = restoLinha.indexOf(matchAfter[0]);
+          matchedText = matchAfter[0];
         }
+
+        // 2. Isolate Description
+        let description = restoLinha;
+
+        // Try to truncate at first 8-digit NCM starting in restoLinha
+        const ncmMatch = restoLinha.match(/\b\d{8}\b/);
+        if (ncmMatch && ncmMatch.index !== undefined) {
+          description = restoLinha.substring(0, ncmMatch.index).trim();
+        } else if (idxMatch !== -1) {
+          description = restoLinha.substring(0, idxMatch).trim();
+        }
+
+        // Clean description from trailing junk (brackets, dashes, trailing numeric codes)
+        description = description.replace(/[\s\d,.-]+$/, "").trim().toUpperCase();
+
+        const standardName = nomesPadrao[sku];
+        const displayDescription = standardName ? standardName : (description || `PRODUTO ${sku}`);
+        const unitWeight = pesosProdPadrao[sku] || 5.0; // Fallback unit weight
+
+        // 3. Extract Unit Price and Total Price from the rest of the line
+        let valueUnit = 10.0;
+        let valueTotal = 10.0 * qty;
+
+        const decimalMatches = restoLinha.match(/\b\d+[\d\.,]*,\d{2,4}\b|\b\d+\.\d{2,4}\b/g);
+        if (decimalMatches && decimalMatches.length >= 2) {
+          const cleanVal = (str: string) => parseFloat(str.replace(/\./g, "").replace(",", ".")) || 0;
+          const val1 = cleanVal(decimalMatches[decimalMatches.length - 2]);
+          const val2 = cleanVal(decimalMatches[decimalMatches.length - 1]);
+          if (val1 > 0 && val2 > 0) {
+            valueUnit = val1;
+            valueTotal = val2;
+          }
+        }
+
+        itemsList.push({
+          code: sku,
+          description: displayDescription,
+          quantity: qty,
+          unit: unit,
+          valueUnit: valueUnit,
+          valueTotal: valueTotal,
+          weightEstimatePerUnit: unitWeight,
+          calculatedWeight: parseFloat((qty * unitWeight).toFixed(3))
+        });
       });
 
-      // Também escaneia dinamicamente via regex para apanhar outros SKUs que podem não estar listados no dicionário
-      const linhas = textoCompleto.split("\n");
-      const regexLinhaProduto = /\b(\d{8})\s+([A-Z0-9\s./-]{10,60})\s+(\d+)\s+(CX|UN|FD|KG)\b/i;
-
-      linhas.forEach((linha) => {
-        const match = linha.trim().match(regexLinhaProduto);
-        if (match) {
-          const cod = match[1];
-          // Evita itens duplicados já mapeados no dicionário
-          if (itemsList.some(item => item.code === cod)) return;
-
-          const desc = match[2].trim().toUpperCase();
-          const q = parseInt(match[3], 10) || 1;
-          const un = match[4].toUpperCase();
-
-          itemsList.push({
-            code: cod,
-            description: desc,
-            quantity: q,
-            unit: un,
-            valueUnit: 12.0,
-            valueTotal: 12.0 * q,
-            weightEstimatePerUnit: 3.0,
-            calculatedWeight: parseFloat((q * 3.0).toFixed(3))
-          });
-        }
-      });
-
-      // Caso o filtro falhe por completo e não ache nenhuma linha (ex: PDF rotacionado),
-      // injetamos a linha de segurança padrão requisitada para não quebrar a lousa escura
+      // Se for o caso de não achar nenhuma linha (ex: PDF escaneado torto ou arquivo vazio),
+      // injetamos a linha de segurança padrão para não quebrar a lousa escura
       if (itemsList.length === 0) {
         itemsList.push({
           code: "12031487",
@@ -448,40 +625,50 @@ export default function App() {
         }
       }
 
-      let emitente = "CAFE TRES CORACOES SA";
-      const linesForEmitente = textoCompleto.split('\n');
-      for (let i = 0; i < Math.min(35, linesForEmitente.length); i++) {
-        const line = linesForEmitente[i];
-        if (/DANFE|DOCUMENTO|AUXILIAR|RECEBEMOS|NOTA FISCAL|EMISSÃO|VALOR/i.test(line)) continue;
-        if (/(?:S\.?A\.?|S\/A|LTDA|ALIMENTOS|CAF[EÉ]|SA|COOP|INDUSTRIA|IND\b)/i.test(line) && line.length > 5 && line.length < 65) {
-          emitente = line.replace(/[^a-zA-Z0-9\s./-]/g, "").trim().toUpperCase();
+      let emitente = "";
+      if (textoCompleto.toUpperCase().includes("CENTRAL DE DISTRIBUICAO")) {
+        emitente = "CAFE TRES CORACOES SA - CD";
+      } else if (textoCompleto.toUpperCase().includes("TRES CORACOES") || textoCompleto.toUpperCase().includes("TRÊS CORAÇÕES")) {
+        emitente = "CAFE TRES CORACOES SA";
+      } else {
+        const saMatch = textoCompleto.match(/\b([A-Z0-9\s.-]{5,60}\s+(?:S\.?A\.?|S\/A|LTDA|ALIMENTOS|CAF[EÉ]|INDUSTRIA|IND\b))/i);
+        if (saMatch) {
+          emitente = saMatch[1].trim().toUpperCase();
+        }
+      }
+      if (!emitente) {
+        emitente = "CAFE TRES CORACOES SA";
+      }
+
+      let destino = "";
+      const cities = [
+        "RIO DE JANEIRO", "SAO PAULO", "SÃO PAULO", "BELO HORIZONTE", "CURITIBA", "PORTO ALEGRE", 
+        "VITÓRIA", "VITORIA", "CABO DE SANTO AGOSTINHO", "MONTES CLAROS", "DUQUE DE CAXIAS", 
+        "NITERÓI", "NITEROI", "SÃO GONÇALO", "SAO GONCALO", "CAMPINAS", "SERRA", "VILA VELHA"
+      ];
+      for (const city of cities) {
+        if (textoCompleto.toUpperCase().includes(city)) {
+          destino = city.toUpperCase();
           break;
         }
       }
-
-      let destino = "RIO DE JANEIRO";
-      const destinoMatch = textoCompleto.match(/(?:MUNICIPIO|MUNIC[IÍ]PIO|CIDADE|BAIRRO\/MUNICIPIO|DESTINATARIO)\s*[:.-]?\s*([A-Z\s.-]{3,35})\s+(?:UF|FONE|CEP|BAIRRO|TELEFONE|INSCRI|IE)/i);
-      if (destinoMatch && destinoMatch[1]) {
-        destino = destinoMatch[1].trim().toUpperCase();
-      } else {
-        const cities = [
-          "RIO DE JANEIRO", "SAO PAULO", "SÃO PAULO", "BELO HORIZONTE", "CURITIBA", "PORTO ALEGRE", 
-          "VITÓRIA", "VITORIA", "CABO DE SANTO AGOSTINHO", "MONTES CLAROS", "DUQUE DE CAXIAS", 
-          "NITERÓI", "NITEROI", "SÃO GONÇALO", "SAO GONCALO", "CAMPINAS", "SERRA", "VILA VELHA"
-        ];
-        for (const city of cities) {
-          if (textoCompleto.toUpperCase().includes(city)) {
-            destino = city.toUpperCase();
-            break;
-          }
+      
+      if (!destino) {
+        const destMatch = textoCompleto.match(/(?:MUNICIPIO|MUNIC[IÍ]PIO|CIDADE)\s*[:.-]?\s*([A-Za-z\s.-]{3,30})/i);
+        if (destMatch && destMatch[1]) {
+          destino = destMatch[1].trim().toUpperCase();
         }
+      }
+
+      if (!destino) {
+        destino = "RIO DE JANEIRO";
       }
 
       const plateMatches = textoCompleto.match(/\b[A-Z]{3}-?\d[A-Z0-9]\d{2}\b/gi) || [];
       const plates = Array.from(new Set(plateMatches.map((p: string) => p.toUpperCase().replace("-", ""))));
       const formattedPlates = plates.map((p: string) => p.slice(0, 3) + "-" + p.slice(3));
       const placaCavalo = formattedPlates[0] || "TYT-8A14";
-      const placaCarreta = formattedPlates[1] || "QOX3164";
+      const placaCarreta = formattedPlates[1] || "QOX-3164";
 
       let observacoes = "DEIXAR ESPACO DE 6 PALETES";
       const obsMatch = textoCompleto.match(/(?:DADOS ADICIONAIS|INFORMA[CÇ][OÕ]ES COMPLEMENTARES|OBSERVA[CÇ][OÕ]ES)[\s\S]*?(?=\b[A-Z\s]{4,}:|$)/i);
