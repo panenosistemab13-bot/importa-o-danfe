@@ -300,82 +300,87 @@ export default function App() {
     setInvoiceError(null);
 
     try {
-      const pdfjsLib = (window as any).pdfjsLib;
-      if (!pdfjsLib) {
-        throw new Error("A biblioteca PDF.js não está carregada ainda. Por favor, aguarde.");
-      }
-
-      // Configuração para processamento de worker local no navegador
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
-      const readAsArrayBuffer = (f: File): Promise<ArrayBuffer> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            if (event.target?.result instanceof ArrayBuffer) {
-              resolve(event.target.result);
-            } else {
-              reject(new Error("Não foi possível ler o arquivo PDF em buffer."));
-            }
-          };
-          reader.onerror = (err) => reject(err);
-          reader.readAsArrayBuffer(f);
-        });
-      };
-
-      const arrayBuffer = await readAsArrayBuffer(file);
-      const typedarray = new Uint8Array(arrayBuffer);
-
-      // Carrega o PDF na memória do navegador utilizando pdf.js
-      const pdf = await pdfjsLib.getDocument(typedarray).promise;
-      
-      // Helper function to reconstruct vertical page lines with high visual fidelity
-      const reconstructLines = (items: any[]): string[] => {
-        if (!items || items.length === 0) return [];
-
-        // Filter out completely empty items
-        const validItems = items.filter(
-          (item) => item && typeof item.str === "string" && item.str.trim() !== ""
-        );
-
-        if (validItems.length === 0) return [];
-
-        // Group items into lines based on Y coordinate with tolerance
-        const tolerance = 7; // Tolerance vertical in points for columns printed on same visual line
-        const linesList: { y: number; items: any[] }[] = [];
-
-        validItems.forEach((item) => {
-          const y = item.transform[5]; // Y-coordinate of the item on page
-          
-          let foundLine = linesList.find((line) => Math.abs(line.y - y) <= tolerance);
-          if (foundLine) {
-            foundLine.items.push(item);
-            foundLine.y = (foundLine.y * (foundLine.items.length - 1) + y) / foundLine.items.length;
-          } else {
-            linesList.push({ y, items: [item] });
-          }
-        });
-
-        // Sort lines by Y descending (from top of page to bottom)
-        linesList.sort((a, b) => b.y - a.y);
-
-        // For each line, sort items by X ascending (from left to right)
-        return linesList.map((line) => {
-          line.items.sort((a, b) => a.transform[4] - b.transform[4]);
-          return line.items.map((item) => item.str).join(" ");
-        });
-      };
-
-      // Collect reconstructed lines across all pages
+      let textoCompleto = "";
       let allReconstructedLines: string[] = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageLines = reconstructLines(textContent.items);
-        allReconstructedLines.push(...pageLines);
-      }
 
-      const textoCompleto = allReconstructedLines.join("\n");
+      if (file.type.startsWith("image/")) {
+        // Se for imagem, utilizamos Tesseract.js para OCR dinamicamente
+        const Tesseract = (await import("tesseract.js")).default;
+        const result = await Tesseract.recognize(file, "por", {
+          logger: m => console.log(m)
+        });
+        allReconstructedLines = result.data.text.split("\n").map(l => l.trim()).filter(Boolean);
+        textoCompleto = allReconstructedLines.join("\n");
+      } else {
+        // Lógica de parsing de PDF original
+        const pdfjsLib = (window as any).pdfjsLib;
+        if (!pdfjsLib) {
+          throw new Error("A biblioteca PDF.js não está carregada ainda. Por favor, aguarde.");
+        }
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        const readAsArrayBuffer = (f: File): Promise<ArrayBuffer> => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              if (event.target?.result instanceof ArrayBuffer) {
+                resolve(event.target.result);
+              } else {
+                reject(new Error("Não foi possível ler o arquivo PDF em buffer."));
+              }
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsArrayBuffer(f);
+          });
+        };
+
+        const arrayBuffer = await readAsArrayBuffer(file);
+        const typedarray = new Uint8Array(arrayBuffer);
+
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        
+        const reconstructLines = (items: any[]): string[] => {
+          if (!items || items.length === 0) return [];
+
+          const validItems = items.filter(
+            (item) => item && typeof item.str === "string" && item.str.trim() !== ""
+          );
+
+          if (validItems.length === 0) return [];
+
+          const tolerance = 7; 
+          const linesList: { y: number; items: any[] }[] = [];
+
+          validItems.forEach((item) => {
+            const y = item.transform[5]; 
+            
+            let foundLine = linesList.find((line) => Math.abs(line.y - y) <= tolerance);
+            if (foundLine) {
+              foundLine.items.push(item);
+              foundLine.y = (foundLine.y * (foundLine.items.length - 1) + y) / foundLine.items.length;
+            } else {
+              linesList.push({ y, items: [item] });
+            }
+          });
+
+          linesList.sort((a, b) => b.y - a.y);
+
+          return linesList.map((line) => {
+            line.items.sort((a, b) => a.transform[4] - b.transform[4]);
+            return line.items.map((item) => item.str).join(" ");
+          });
+        };
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageLines = reconstructLines(textContent.items);
+          allReconstructedLines.push(...pageLines);
+        }
+
+        textoCompleto = allReconstructedLines.join("\n");
+      }
 
       // --- LÓGICA DE EXTRAÇÃO DOS DADOS REAIS DO DANFE ---
 
@@ -1495,7 +1500,7 @@ export default function App() {
           </div>
 
           {/* Minimalist text tab selector (hiding the pill-shape navigation and elements in the attachments) */}
-          <div className="flex items-center space-x-6 text-xs uppercase tracking-widest font-bold">
+          <div className="hidden">
             <button
               onClick={() => setActiveTab("invoice")}
               className={`transition duration-200 focus:outline-none pb-1 border-b-2 ${
@@ -1556,7 +1561,7 @@ export default function App() {
                       </svg>
                     </div>
 
-                    <h4 className="font-sans font-medium text-lg text-[#5c4a37] tracking-wider">Importar DANFE (XML ou texto)</h4>
+                    <h4 className="font-sans font-medium text-lg text-[#5c4a37] tracking-wider">Importar</h4>
                     <p className="text-xs text-[#a38b6d] font-normal mt-1">(PDF ou Imagem)</p>
                   </label>
                 </div>
@@ -1596,22 +1601,36 @@ export default function App() {
                   <div>
                     <h3 className="font-display font-bold text-xl text-[#8C6D3F]">Texto para Copiar e Colar</h3>
                     <p className="text-xs text-stone-500 font-semibold leading-relaxed mt-1">
-                      Linhas de dados tabuladas e formatadas prontas para transferência automática no Excel
+                      Linhas de dados tabuladas e formatadas prontas para transferência automática no google planilha
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => copyToClipboard(generateSpreadsheetText())}
-                    className={`px-6 py-4 rounded-xl font-bold text-sm shadow-md transition-all duration-200 flex items-center gap-3 transform hover:scale-[1.02] active:scale-[0.98] ${
-                      copiedInvoice
-                        ? "bg-[#8C6D3F] text-white border border-[#7D5E31]"
-                        : "bg-stone-900 text-stone-100 hover:bg-stone-800 border border-stone-800"
-                    }`}
-                  >
-                    <span>
-                      {copiedInvoice ? "✓ Texto Copiado!" : "Copiar Texto para Planilha"}
-                    </span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div className="flex flex-col">
+                      <label className="text-[10px] font-bold text-[#8C6D3F] tracking-wider mb-1 uppercase">
+                        Nº da Nota Fiscal
+                      </label>
+                      <input
+                        type="text"
+                        value={manualInvoiceNumber || (invoiceData ? invoiceData.invoiceNumber : "")}
+                        onChange={(e) => setManualInvoiceNumber(e.target.value)}
+                        placeholder="Nº da Nota Fiscal"
+                        className="w-full sm:w-40 px-3 py-2.5 bg-[#FAF6EE] text-[#5C4A37] border border-[#DECFA4] rounded-xl font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[#8C6D3F] transition duration-200"
+                      />
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(generateSpreadsheetText())}
+                      className={`px-6 py-4 rounded-xl font-bold text-sm shadow-md transition-all duration-200 flex items-center gap-3 transform hover:scale-[1.02] active:scale-[0.98] mt-4 sm:mt-5 ${
+                        copiedInvoice
+                          ? "bg-[#8C6D3F] text-white border border-[#7D5E31]"
+                          : "bg-stone-900 text-stone-100 hover:bg-stone-800 border border-stone-800"
+                      }`}
+                    >
+                      <span>
+                        {copiedInvoice ? "✓ Texto Copiado!" : "Copiar Texto para Planilha"}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Display Area */}

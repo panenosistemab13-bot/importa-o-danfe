@@ -111,20 +111,42 @@ function calculateWeightEstimate(desc: string, code?: string): number {
 app.post("/api/parse-invoice", upload.single("file"), async (req, res) => {
   try {
     let buffer: Buffer | null = null;
+    let isImage = false;
 
     if (req.file) {
       buffer = req.file.buffer;
+      if (req.file.mimetype.startsWith("image/")) {
+        isImage = true;
+      }
     } else if (req.body && req.body.fileBase64) {
       buffer = Buffer.from(req.body.fileBase64, "base64");
+      const mimeType = req.body.mimeType;
+      if (mimeType && mimeType.startsWith("image/")) {
+         isImage = true;
+      } else {
+         if (buffer.length > 4) {
+           const hex = buffer.toString('hex', 0, 4);
+           if (hex === "89504e47" || hex === "ffd8ffe0" || hex === "ffd8ffe1") {
+             isImage = true;
+           }
+         }
+      }
     }
 
     if (!buffer) {
       return res.status(400).json({ error: "O arquivo PDF de Nota Fiscal é obrigatório (enviar no campo 'file' ou via JSON em 'fileBase64')." });
     }
 
-    // Convert file to buffer and parse text locally using pdf-parse
-    const pdfData = await pdf(buffer);
-    const text = pdfData.text || "";
+    let text = "";
+    if (isImage) {
+      const tesseract = (await import("tesseract.js")).default;
+      const result = await tesseract.recognize(buffer, "por");
+      text = result.data.text || "";
+    } else {
+      // Convert file to buffer and parse text locally using pdf-parse
+      const pdfData = await pdf(buffer);
+      text = pdfData.text || "";
+    }
 
     if (!text || text.trim().length === 0) {
       throw new Error("Não foi possível extrair nenhum texto legível do arquivo PDF (pode ser escaneado ou uma imagem embutida sem OCR).");
@@ -442,18 +464,43 @@ app.post("/api/parse-zpl-cargo", upload.single("file"), async (req, res) => {
     let fullText = textInput || "";
 
     let buffer: Buffer | null = null;
+    let isImage = false;
     if (req.file) {
       buffer = req.file.buffer;
+      if (req.file.mimetype.startsWith("image/")) {
+        isImage = true;
+      }
     } else if (fileBase64) {
       buffer = Buffer.from(fileBase64, "base64");
+      if (mimeType && mimeType.startsWith("image/")) {
+         isImage = true;
+      } else {
+         // Auto-detect basic image magic cookies just in case
+         if (buffer.length > 4) {
+           const hex = buffer.toString('hex', 0, 4);
+           if (hex === "89504e47" || hex === "ffd8ffe0" || hex === "ffd8ffe1") {
+             isImage = true;
+           }
+         }
+      }
     }
 
     if (buffer) {
-      try {
-        const pdfData = await pdf(buffer);
-        fullText += "\n" + (pdfData.text || "");
-      } catch (pdfErr: any) {
-        console.error("Erro ao extrair texto do PDF de carga:", pdfErr);
+      if (isImage) {
+        try {
+          const tesseract = (await import("tesseract.js")).default;
+          const result = await tesseract.recognize(buffer, "por");
+          fullText += "\n" + (result.data.text || "");
+        } catch (imgErr: any) {
+          console.error("Erro ao processar a imagem de carga com OCR:", imgErr);
+        }
+      } else {
+        try {
+          const pdfData = await pdf(buffer);
+          fullText += "\n" + (pdfData.text || "");
+        } catch (pdfErr: any) {
+          console.error("Erro ao extrair texto do PDF de carga:", pdfErr);
+        }
       }
     }
 
