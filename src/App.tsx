@@ -21,24 +21,24 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { ProductItem, InvoiceData, DistributionMode, WeightTarget, ZplCargoData } from "./types";
 
-// Helper component to render beautiful retro physical mechanical turning odometer digits
+// Helper component to render beautiful high-precision golden/cream dials
 function Odometer({ value, label, maxDigitCount = 10 }: { value: string | number; label: string; maxDigitCount?: number }) {
-  const strVal = String(value).replace(/[^0-9]/g, "");
+  const strVal = String(value).replace(/[^0-9.]/g, "");
   const paddedVal = strVal.padStart(maxDigitCount, "0");
   const digits = paddedVal.split("");
 
   return (
-    <div className="flex flex-col items-center bg-[#291710]/40 p-4 rounded-xl border border-[#523528]/80 shadow-[inset_0_4px_12px_rgba(0,0,0,0.6)]">
-      <span className="text-[10px] font-bold text-[#dba275]/80 uppercase tracking-widest mb-2 font-sans select-none text-center">
+    <div className="flex flex-col items-center bg-white/75 backdrop-blur-md border border-[#E8DFC8] p-4 rounded-xl shadow-[inset_0_2px_4px_rgba(188,162,126,0.03),0_4px_12px_rgba(188,162,126,0.05)]">
+      <span className="text-[10px] font-bold text-[#8C6D3F] uppercase tracking-[0.15em] mb-2 font-sans select-none text-center">
         {label}
       </span>
-      <div className="flex items-center space-x-1.5 p-1.5 bg-[#4c3127] rounded-lg border-2 border-[#bfa27a] shadow-[0_4px_8px_rgba(0,0,0,0.4)]">
+      <div className="flex items-center space-x-1 p-1 bg-[#FAF6EE] rounded-lg border border-[#DECFA4]">
         {digits.map((digit, index) => (
           <div
             key={index}
-            className="w-8 h-12 mechanical-wheel bg-gradient-to-b from-black via-[#1f1a17] to-black flex items-center justify-center text-xl font-bold font-mono text-[#ecd0aa] border-r border-[#3d251c]"
+            className="w-8 h-12 bg-white flex items-center justify-center text-xl font-bold font-mono text-[#8C6D3F] border border-[#F3EFE6] rounded shadow-sm"
             style={{
-              textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(223, 192, 144, 0.5)",
+              textShadow: "0 1px 1px rgba(140, 109, 63, 0.1)",
             }}
           >
             {digit}
@@ -1194,63 +1194,83 @@ export default function App() {
 
   return (
     <div 
-      className="min-h-screen vintage-wood-bg text-[#3b2110] font-sans p-4 sm:p-10 flex flex-col items-center transition-all duration-300"
+      className="min-h-screen bg-[#FAF7F0] text-[#5c4a37] font-sans p-4 sm:p-10 flex flex-col items-center transition-all duration-300 relative overflow-hidden"
       style={{ zoom: zoomLevel / 100 } as React.CSSProperties}
     >
-      <div className="w-full max-w-6xl flex flex-col space-y-8">
-        
-        {/* Top Credit Ribbon */}
-        <div className="text-center py-2 bg-[#4a2e1d]/90 border border-[#bfa27a]/40 rounded-lg text-xs font-bold text-[#fbf5e6] tracking-widest uppercase shadow-sm flex items-center justify-center gap-2">
-          <span>☕</span>
-          <span>Criado por Jefferson Augusto</span>
-          <span>☕</span>
-        </div>
+      {/* Premium layered diagonal marble background panels matching image.png */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        {/* Left Diagonal Plate */}
+        <div 
+          className="absolute -left-64 top-0 w-[50%] h-full bg-[#FAF7F0] border-r border-[#E8DFC8] shadow-[20px_0_40px_rgba(140,109,63,0.06)] transform -skew-x-12 origin-top-left opacity-90"
+          style={{
+            backgroundImage: `linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(245,240,230,0.5) 100%)`
+          }}
+        />
+        <div className="absolute -left-48 top-0 w-[30%] h-full border-r-2 border-[#DCD0B4] opacity-15 transform -skew-x-12 origin-top-left" />
+
+        {/* Right Diagonal Plate */}
+        <div 
+          className="absolute -right-64 top-0 w-[50%] h-full bg-[#FAF7F0] border-l border-[#E8DFC8] shadow-[-20px_0_40px_rgba(140,109,63,0.06)] transform skew-x-12 origin-top-right opacity-90"
+          style={{
+            backgroundImage: `linear-gradient(-135deg, rgba(255,255,255,0.7) 0%, rgba(245,240,230,0.5) 100%)`
+          }}
+        />
+        <div className="absolute -right-48 top-0 w-[30%] h-full border-l-2 border-[#DCD0B4] opacity-15 transform skew-x-12 origin-top-right" />
+
+        {/* Delicate golden bottom separator matching image */}
+        <div className="absolute bottom-16 left-[5%] right-[5%] h-[1.5px] bg-gradient-to-r from-transparent via-[#DECFA4] to-transparent" />
+      </div>
+
+      <div className="w-full max-w-6xl flex flex-col space-y-8 relative z-10">
         
         {/* Calligraphic Board Header Layout matching IMAGE.PNG */}
-        <header className="flex flex-col md:flex-row items-center border-b border-[#5e412f]/45 pb-8 space-y-4 md:space-y-0 justify-between">
-          <div className="flex items-center space-x-5">
-            {/* Skeuomorphic Wooden circular Cafê Três Corações badge logo */}
-            <div className="w-24 h-24 rounded-full bg-[#f4ecd8] border-8 border-[#3b2314] shadow-[0_6px_15px_rgba(0,0,0,0.5),inset_0_4px_8px_rgba(255,255,255,0.2)] flex flex-col items-center justify-center p-1 relative transform -rotate-3">
-              <div className="text-[7px] font-bold text-[#3b2314] tracking-widest leading-none font-sans mt-0.5">TRÊS</div>
-              {/* Hearts nesting layout inside vector */}
-              <div className="flex space-x-0.5 my-0.5 justify-center">
-                <span className="text-red-700 text-xl font-bold">♥</span>
-                <span className="text-red-700 text-2xl font-bold -translate-y-1">♥</span>
-                <span className="text-red-700 text-xl font-bold">♥</span>
-              </div>
-              <div className="text-[7.5px] font-bold text-[#3b2314] tracking-widest leading-none font-sans">CORAÇÕES</div>
-              <div className="text-[6px] font-semibold text-[#8c6c53] leading-none mt-0.5">LOGÍSTICA</div>
-              {/* Outer rivet pins on badge */}
-              <div className="absolute top-1 left-1.5 w-1 h-1 bg-yellow-600 rounded-full" />
-              <div className="absolute bottom-1 right-1.5 w-1 h-1 bg-yellow-600 rounded-full" />
-            </div>
- 
+        <header className="flex flex-col sm:flex-row items-center justify-between pb-6 border-b border-[#E8DFC8]/45 space-y-4 sm:space-y-0">
+          <div className="flex items-center space-x-4">
             <div>
-              <h1 className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-[#452719] drop-shadow-[0_2px_2px_rgba(255,255,255,0.7)] flex items-center gap-3">
+              <h1 className="font-sans text-xl sm:text-2xl font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-[#8C6D3F] via-[#C5A880] to-[#8C6D3F] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
                 IMPORTAÇÃO DANFE
               </h1>
-              <p className="font-cursive text-lg text-[#5e3820] mt-1 italic font-semibold">
-                Ferramenta avançada para rateio de Notas Fiscais e automação sequencial de CPI
-              </p>
             </div>
           </div>
- 
-          {/* Zoom/Escala Indicator and UTC Parameter Panel */}
-          <div className="flex flex-wrap items-center gap-4 bg-[#fbf4df]/90 px-4 py-2.5 rounded-lg border border-[#c9ae92] shadow-sm font-mono text-xs text-[#5e3d2a] font-bold">
+
+          {/* Minimalist text tab selector (hiding the pill-shape navigation and elements in the attachments) */}
+          <div className="flex items-center space-x-6 text-xs uppercase tracking-widest font-bold">
+            <button
+              onClick={() => setActiveTab("invoice")}
+              className={`transition duration-200 focus:outline-none pb-1 border-b-2 ${
+                activeTab === "invoice" ? "text-[#8C6D3F] border-[#8C6D3F]" : "text-stone-400 hover:text-[#8C6D3F] border-transparent"
+              }`}
+            >
+              Rateio de Peso
+            </button>
+            <button
+              onClick={() => setActiveTab("zpl")}
+              className={`transition duration-200 focus:outline-none pb-1 border-b-2 ${
+                activeTab === "zpl" ? "text-[#8C6D3F] border-[#8C6D3F]" : "text-stone-400 hover:text-[#8C6D3F] border-transparent"
+              }`}
+            >
+              Sequencial ZPL
+            </button>
+          </div>
+        </header>
+
+        {/* Zoom/Escala Indicator and UTC Parameter Panel */}
+        {((invoiceData && invoiceData.items && invoiceData.items.length > 0) || generatedZpls.length > 0) && (
+          <div className="flex flex-wrap items-center gap-4 bg-white/60 backdrop-blur px-4 py-2 rounded-lg border border-[#E8DFC8] shadow-sm font-mono text-xs text-[#8C6D3F] font-bold self-end">
             <div className="flex items-center space-x-2">
-              <span className="text-[#8c4627]">Zoom:</span>
+              <span className="text-[#8C6D3F]">Zoom:</span>
               <button
                 onClick={() => setZoomLevel((prev) => Math.max(50, prev - 5))}
-                className="w-6 h-6 flex items-center justify-center bg-[#8c4627]/15 hover:bg-[#8c4627] hover:text-[#faeed1] rounded text-xs font-black transition-all cursor-pointer"
+                className="w-5 h-5 flex items-center justify-center bg-[#FAF6EE] border border-[#DECFA4] hover:bg-[#8C6D3F] hover:text-[#faeed1] rounded text-xs font-black transition-all cursor-pointer"
                 title="Diminuir Zoom"
                 id="btn-zoom-out"
               >
                 -
               </button>
-              <span className="min-w-[36px] text-center">{zoomLevel}%</span>
+              <span className="min-w-[32px] text-center">{zoomLevel}%</span>
               <button
                 onClick={() => setZoomLevel((prev) => Math.min(110, prev + 5))}
-                className="w-6 h-6 flex items-center justify-center bg-[#8c4627]/15 hover:bg-[#8c4627] hover:text-[#faeed1] rounded text-xs font-black transition-all cursor-pointer"
+                className="w-5 h-5 flex items-center justify-center bg-[#FAF6EE] border border-[#DECFA4] hover:bg-[#8C6D3F] hover:text-[#faeed1] rounded text-xs font-black transition-all cursor-pointer"
                 title="Aumentar Zoom"
                 id="btn-zoom-in"
               >
@@ -1258,33 +1278,33 @@ export default function App() {
               </button>
             </div>
 
-            <div className="h-4 w-[1px] bg-[#c9ae92] hidden md:block" />
+            <div className="h-3 w-[1px] bg-[#E8DFC8]" />
 
             {/* Separador Decimal Selector */}
             <div className="flex items-center space-x-1.5">
-              <span className="text-[#8c4627]">Decimal:</span>
+              <span>Decimal:</span>
               <button
                 type="button"
                 onClick={() => setDecimalSeparator(decimalSeparator === "," ? "." : ",")}
-                className="px-2.5 py-1 bg-[#8c4627]/15 hover:bg-[#8c4627] hover:text-[#faeed1] rounded text-xs font-bold transition-all"
+                className="px-2 py-0.5 bg-[#FAF6EE] border border-[#DECFA4] hover:bg-[#8C6D3F] hover:text-[#faeed1] rounded text-xs font-bold transition-all"
                 title="Alterna o caractere separador decimal entre vírgula e ponto"
               >
                 "{decimalSeparator}"
               </button>
             </div>
 
-            <div className="h-4 w-[1px] bg-[#c9ae92] hidden md:block" />
+            <div className="h-3 w-[1px] bg-[#E8DFC8]" />
 
             {/* Sufixo KG Toggle */}
             <div className="flex items-center space-x-1.5">
-              <span className="text-[#8c4627]">Sufixo KG:</span>
+              <span>Sufixo KG:</span>
               <button
                 type="button"
                 onClick={() => setUseKgSuffix(!useKgSuffix)}
-                className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${
+                className={`px-2 py-0.5 rounded text-xs font-bold transition-all border ${
                   useKgSuffix 
-                    ? "bg-[#3e532b] text-white shadow" 
-                    : "bg-[#8c4627]/15 text-[#8c4627]"
+                    ? "bg-[#3e532b] text-white border-[#3e532b] shadow-sm" 
+                    : "bg-[#FAF6EE] text-[#8C6D3F] border-[#DECFA4]"
                 }`}
                 title="Exibe ou oculta o sufixo ' KG' no final dos pesos"
               >
@@ -1292,14 +1312,14 @@ export default function App() {
               </button>
             </div>
 
-            <div className="h-4 w-[1px] bg-[#c9ae92] hidden sm:block" />
+            <div className="h-3 w-[1px] bg-[#E8DFC8]" />
 
-            <span className="flex items-center gap-1">
-              <Calendar className="h-4 w-4 text-[#8c4627]" />
+            <span className="flex items-center gap-1 font-sans">
+              <Calendar className="h-3.5 w-3.5 text-[#8C6D3F]" />
               UTC: 2026-06-10
             </span>
           </div>
-        </header>
+        )}
 
         {/* Dynamic content screen wrapper */}
         <div className="space-y-8 mt-4">
@@ -1307,25 +1327,45 @@ export default function App() {
             <div className="space-y-8">
               
               {/* Import Box styled as physical vintage coffee sack centered without the explanatory banner */}
-              <div className="w-full max-w-xl mx-auto scroll-parchment p-8 rounded-lg text-center flex flex-col items-center justify-center border-2 border-dashed border-[#85633a] bg-gradient-to-br from-[#faf0db] to-[#ebd8b1] hover:from-[#fdf6e8] hover:to-[#f2e1c0] transition duration-300 relative group">
-                <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center p-3 select-none">
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,image/png,image/jpeg,image/jpg"
-                    onChange={handleInvoiceUpload}
-                    disabled={loadingInvoice}
-                  />
-                  <div className="w-16 h-16 bg-[#4a2e1d] rounded-xl flex items-center justify-center text-[#dfc090] mb-3 group-hover:scale-110 transition shadow-lg border-2 border-[#85633a]">
-                    {loadingInvoice ? (
-                      <RefreshCw className="h-8 w-8 animate-spin" />
-                    ) : (
-                      <span className="text-3xl font-bold">☕</span>
-                    )}
-                  </div>
-                  <h4 className="font-display font-bold text-lg text-[#3b1904]">Importar DANFE</h4>
-                  <p className="text-xs text-[#6e5138] font-semibold mt-1">(PDF ou Imagem)</p>
-                </label>
+              <div className="w-full max-w-xl mx-auto p-0.5 rounded-2xl bg-[#DECFA4] shadow-[0_15px_30px_rgba(188,162,126,0.12)] hover:shadow-[0_20px_40px_rgba(188,162,126,0.18)] transition-all duration-300">
+                <div className="rounded-2xl bg-white/90 backdrop-blur-md p-8 text-center flex flex-col items-center justify-center border border-white relative group">
+                  <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center p-4 select-none">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,image/png,image/jpeg,image/jpg"
+                      onChange={handleInvoiceUpload}
+                      disabled={loadingInvoice}
+                    />
+                    
+                    {/* Embedded custom premium gold quill SVG icon */}
+                    <div className="mb-4 transform group-hover:scale-105 transition-all duration-300">
+                      <svg width="60" height="60" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#BEA27E]">
+                        {/* Elegant document base */}
+                        <rect x="18" y="10" width="28" height="38" rx="4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                        <path d="M34 10H46V22L34 10Z" fill="currentColor" fillOpacity="0.2" />
+                        {/* Little heart representing Três Corações logo on the document */}
+                        <path d="M32 31 C32 29.8, 31 29, 30 29 C29 29, 28 29.8, 28 31 C28 32.5, 30 34, 32 35 C34 34, 36 32.5, 36 31 C36 29.8, 35 29, 34 29 C33 29, 32 29.8, 32 31Z" fill="#C5A880" />
+                        {/* Lines on paper */}
+                        <line x1="24" y1="20" x2="32" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        <line x1="24" y1="25" x2="36" y2="25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        {/* Elegant Quill Feather pen overlapping */}
+                        <path d="M48 14 C44 22, 38 32, 22 46 C20.5 47.5, 18 48, 16 48 C16 46, 16.5 43.5, 18 42 C32 26, 42 20, 48 14 Z" fill="url(#goldGradient)" stroke="currentColor" strokeWidth="1.5" />
+                        <path d="M22 46 L20 44" stroke="currentColor" strokeWidth="1.5" />
+                        <defs>
+                          <linearGradient id="goldGradient" x1="16" y1="48" x2="48" y2="14" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#8C6D3F" />
+                            <stop offset="50%" stopColor="#C5A880" />
+                            <stop offset="100%" stopColor="#E6D3B6" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    </div>
+
+                    <h4 className="font-sans font-medium text-lg text-[#5c4a37] tracking-wider">Importar DANFE</h4>
+                    <p className="text-xs text-[#a38b6d] font-normal mt-1">(PDF ou Imagem)</p>
+                  </label>
+                </div>
               </div>
 
               {/* Reset / Clear Button */}
@@ -1358,43 +1398,39 @@ export default function App() {
 
 
 
-              {/* Antique Mechanical Numbers Dials (Odometer dials) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-[#3a2016]/90 p-6 rounded-2xl border-4 border-[#5c3e21] shadow-[0_12px_24px_rgba(0,0,0,0.6)] relative">
-                {/* Vintage metallic rivets on container corners */}
-                <div className="absolute top-2 left-2"><div className="rivet" /></div>
-                <div className="absolute top-2 right-2"><div className="rivet" /></div>
-                <div className="absolute bottom-2 left-2"><div className="rivet" /></div>
-                <div className="absolute bottom-2 right-2"><div className="rivet" /></div>
-
-                <div className="space-y-3">
+              {/* Luxury Digital Dials Dashboard */}
+              {invoiceData && invoiceData.items && invoiceData.items.length > 0 && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-[#DECFA4] shadow-[0_10px_25px_rgba(188,162,126,0.06)] relative">
+                <div className="space-y-2">
                   <Odometer value={manualInvoiceNumber} label="Número da Nota Fiscal (DANFE)" maxDigitCount={6} />
                   <input
                     type="number"
                     value={manualInvoiceNumber}
                     onChange={(e) => setManualInvoiceNumber(e.target.value)}
-                    className="w-full text-center py-1 bg-[#1f110a] text-[#dba275] border border-[#523528] rounded font-mono text-xs focus:outline-none"
+                    className="w-full text-center py-1.5 bg-[#FAF6EE] text-[#8C6D3F] border border-[#DECFA4] rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[#8C6D3F]/40 transition duration-200"
                     placeholder="Editar valor"
                   />
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Odometer value={manualGrossWeight} label="Peso Bruto Total (KG)" maxDigitCount={6} />
                   <input
                     type="number"
                     value={manualGrossWeight}
                     onChange={(e) => setManualGrossWeight(parseFloat(e.target.value) || 0)}
-                    className="w-full text-center py-1 bg-[#1f110a] text-[#dba275] border border-[#523528] rounded font-mono text-xs focus:outline-none"
+                    className="w-full text-center py-1.5 bg-[#FAF6EE] text-[#8C6D3F] border border-[#DECFA4] rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[#8C6D3F]/40 transition duration-200"
                     placeholder="Editar valor"
                   />
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Odometer value={manualNetWeight} label="Peso Líquido Total (KG)" maxDigitCount={6} />
                   <input
                     type="number"
                     value={manualNetWeight}
                     onChange={(e) => setManualNetWeight(parseFloat(e.target.value) || 0)}
-                    className="w-full text-center py-1 bg-[#1f110a] text-[#dba275] border border-[#523528] rounded font-mono text-xs focus:outline-none"
+                    className="w-full text-center py-1.5 bg-[#FAF6EE] text-[#8C6D3F] border border-[#DECFA4] rounded-lg font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[#8C6D3F]/40 transition duration-200"
                     placeholder="Editar valor"
                   />
                 </div>
@@ -1402,76 +1438,80 @@ export default function App() {
 
 
 
-              {/* Pinned Stitched Military Green Banner Ribbon indicating balancing status */}
-              <div className="flex justify-center py-2 relative">
-                <div className={`ribbon-green px-12 py-3.5 rounded-md relative text-center min-w-[320px] transition duration-300 font-cursive text-2xl font-bold shadow-lg ${
-                  balanceResults.matches ? "from-[#4c5f35] to-[#354523]" : "from-[#8c5737] to-[#693e23]"
+              {/* Elegant Status Ribbon */}
+              <div className="flex justify-center py-1">
+                <div className={`px-10 py-3 rounded-full text-center min-w-[320px] transition-all duration-300 font-sans text-sm font-semibold shadow-sm border ${
+                  balanceResults.matches 
+                    ? "bg-[#FAF6EE] border-[#DECFA4] text-[#8C6D3F]" 
+                    : "bg-[#FAF0EB] border-[#E0BCB4] text-[#A64A3E]"
                 }`}>
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2"><div className="rivet" /></div>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2"><div className="rivet" /></div>
-                  
                   {balanceResults.matches ? (
-                    <span>Equilíbrio da Nota Perfeito!</span>
+                    <span className="flex items-center justify-center gap-1.5 font-bold">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      Equilíbrio da Nota Perfeito!
+                    </span>
                   ) : (
-                    <span>Ajuste de Pesos Necessário</span>
+                    <span className="flex items-center justify-center gap-1.5 font-bold">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 " />
+                      Ajuste de Pesos Necessário
+                    </span>
                   )}
-                  <p className="text-[10px] font-sans font-bold tracking-wider opacity-85 mt-0.5 uppercase">
+                  <p className="text-[10px] font-mono tracking-wider opacity-80 mt-0.5 uppercase">
                     Rateado: {formatWeight(balanceResults.sum)} KG / Alvo: {formatWeight(balanceResults.target)} KG
                   </p>
                 </div>
               </div>
 
-              {/* Canvas Parchment Invoice ledger table matching IMAGE.PNG */}
-              <div className="scroll-parchment p-5 sm:p-7 rounded-2xl border-2 border-[#cbb08f] shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 bottom-0 left-4 w-0.5 bg-red-400/30 border-l border-dashed border-red-500/50" />
+              {/* High-End Luxury Invoice Ledger Table */}
+              <div className="bg-white/80 backdrop-blur-md p-5 sm:p-7 rounded-2xl border border-[#DECFA4] shadow-[0_15px_30px_rgba(188,162,126,0.06)] relative overflow-hidden">
                 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm border-collapse font-sans font-medium">
                     <thead>
-                      <tr className="border-b-2 border-[#54391e]/30 text-[#4a2e1d] font-bold text-xs uppercase tracking-wider">
-                        <th className="py-3 px-4 pl-8">Código</th>
+                      <tr className="border-b border-[#DECFA4] text-[#8C6D3F] font-bold text-xs uppercase tracking-wider">
+                        <th className="py-3 px-4 pl-4">Código</th>
                         <th className="py-3 px-4 w-1/3">Descrição / Produto</th>
                         <th className="py-3 px-4 text-center">QTD</th>
                         <th className="py-3 px-4 text-center">UN</th>
                         <th className="py-3 px-4 text-right">Peso Teórico (KG)</th>
-                        <th className="py-3 px-4 text-right bg-[#e3cca7]/40 text-[#4a2913] font-black">
+                        <th className="py-3 px-4 text-right bg-[#FAF6EE]/50 text-[#8C6D3F] font-black">
                           Peso Rateado (KG)
                         </th>
                         <th className="py-3 px-4 text-center">Excluir</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#54391e]/15 font-ledger text-[13px] text-[#2c1303]">
+                    <tbody className="divide-y divide-[#DECFA4]/40 font-sans text-xs text-[#5C4A37] font-medium">
                       {calculatedItems.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="py-8 text-center text-sm font-sans italic text-[#8c6b53]/80 bg-[#fde9cc]/20">
+                          <td colSpan={7} className="py-8 text-center text-sm italic text-[#8C6D3F]/70 bg-[#FAF6EE]/30 rounded-lg">
                             Nenhum item cadastrado. Use o botão anterior ou importe uma DANFE para carregar produtos.
                           </td>
                         </tr>
                       ) : (
                         calculatedItems.map((item, idx) => (
-                          <tr key={item.code + "-" + idx} className="hover:bg-[#faecd1]/60 transition">
-                            <td className="py-3 px-4 pl-8 font-bold">{item.code}</td>
-                            <td className="py-3 px-4 leading-tight font-sans text-xs font-semibold text-slate-800">
+                          <tr key={item.code + "-" + idx} className="hover:bg-[#FAF6EE]/40 transition duration-150">
+                            <td className="py-3 px-4 font-bold text-[#8C6D3F] pl-4">{item.code}</td>
+                            <td className="py-3 px-4 leading-tight text-[#453625]">
                               {item.description}
                             </td>
                             <td className="py-3 px-4 text-center font-bold">{item.quantity}</td>
-                            <td className="py-3 px-4 text-center font-bold text-[#70523f]">{item.unit}</td>
-                            <td className="py-3 px-4 text-right font-mono text-xs opacity-75">
+                            <td className="py-3 px-4 text-center font-bold text-[#8C6D3F]">{item.unit}</td>
+                            <td className="py-3 px-4 text-right font-mono text-[11px] opacity-75">
                               {formatWeight(item.quantity * item.weightEstimatePerUnit)} KG
                             </td>
-                            <td className="py-1.5 px-4 text-right bg-[#eedab6]/25 font-bold">
+                            <td className="py-1.5 px-4 text-right bg-[#FAF6EE]/30 font-bold">
                               <input
                                 type="number"
                                 step="0.001"
                                 value={item.calculatedWeight || 0}
                                 onChange={(e) => handleUpdateItemWeight(idx, parseFloat(e.target.value) || 0)}
-                                className="w-24 text-right px-2.5 py-1 bg-[#fcf9f2] border-2 border-[#b8946e] rounded text-xs font-mono font-bold text-[#8c4c23] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#8c4c23]"
+                                className="w-24 text-right px-2.5 py-1 bg-white border border-[#DECFA4] rounded-lg text-xs font-mono font-bold text-[#8C6D3F] shadow-sm focus:outline-none focus:ring-1 focus:ring-[#8C6D3F]"
                               />
                             </td>
                             <td className="py-1 px-4 text-center">
                               <button
                                 onClick={() => handleDeleteItem(idx)}
-                                className="p-1 px-2.5 bg-red-800/10 hover:bg-red-800 hover:text-white text-red-800 rounded transition text-xs font-bold"
+                                className="p-1.5 bg-red-50 hover:bg-red-500 hover:text-white text-red-700 rounded-lg transition duration-150 text-xs font-bold"
                                 title="Excluir Item"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -1485,26 +1525,26 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Slated School Chalkboard for copyable clipboard text */}
+              {/* Luxury Copy & Paste Panel */}
               <div className="space-y-4">
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                   <div>
-                    <h3 className="font-display font-bold text-2xl text-[#422119]">Texto para Copiar e Colar</h3>
-                    <p className="text-xs text-[#6e4e37] font-semibold">
+                    <h3 className="font-display font-bold text-2xl text-[#8C6D3F]">Texto para Copiar e Colar</h3>
+                    <p className="text-xs text-stone-500 font-semibold">
                       Selecione o formato para rateio de volume ou logística (fácil de colar no Excel/planilhas)
                     </p>
                   </div>
 
-                  {/* Elegant Retro Format & Weight Mode Selector */}
+                  {/* Elegant Format & Weight Mode Selector */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <div className="flex items-center space-x-2 bg-[#ebd8b1]/30 p-1 rounded-lg border border-[#c49265]/40 self-start xl:self-auto">
+                    <div className="flex items-center space-x-2 bg-[#FAF6EE] p-1 rounded-lg border border-[#DECFA4] self-start xl:self-auto">
                       <button
                         type="button"
                         onClick={() => setCopyFormat("products")}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition duration-200 ${
                           copyFormat === "products"
-                            ? "bg-[#4a2e1d] text-white shadow"
-                            : "text-[#543b24] hover:bg-[#ebd8b1]/50"
+                            ? "bg-[#8C6D3F] text-white shadow-sm"
+                            : "text-[#8C6D3F] hover:bg-[#FAF6EE]/70"
                         }`}
                       >
                         📋 Tabela por SKU
@@ -1512,10 +1552,10 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setCopyFormat("logistics")}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition duration-200 ${
                           copyFormat === "logistics"
-                            ? "bg-[#bda16d] text-[#2d1e08] shadow border border-[#59452b]"
-                            : "text-[#543b24] hover:bg-[#ebd8b1]/50"
+                            ? "bg-[#8C6D3F] text-white shadow-sm"
+                            : "text-[#8C6D3F] hover:bg-[#FAF6EE]/70"
                         }`}
                       >
                         🚚 Registro de Logística
@@ -1523,14 +1563,14 @@ export default function App() {
                     </div>
 
                     {copyFormat === "products" && (
-                      <div className="flex items-center space-x-2 bg-[#ebd8b1]/30 p-1 rounded-lg border border-[#c49265]/40 self-start xl:self-auto">
+                      <div className="flex items-center space-x-2 bg-[#FAF6EE] p-1 rounded-lg border border-[#DECFA4] self-start xl:self-auto">
                         <button
                           type="button"
                           onClick={() => setSpreadsheetWeightMode("bruto_total")}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+                          className={`px-3 py-1.5 text-xs font-bold rounded-md transition duration-200 ${
                             spreadsheetWeightMode === "bruto_total"
-                              ? "bg-[#4a2e1d] text-white shadow"
-                              : "text-[#543b24] hover:bg-[#ebd8b1]/50"
+                              ? "bg-[#8C6D3F] text-white shadow-sm"
+                              : "text-[#8C6D3F] hover:bg-[#FAF6EE]/70"
                           }`}
                           title="Repete o Peso Bruto de toda a nota fiscal em todas as linhas — idêntico ao seu script"
                         >
@@ -1539,10 +1579,10 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setSpreadsheetWeightMode("rateado")}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+                          className={`px-3 py-1.5 text-xs font-bold rounded-md transition duration-200 ${
                             spreadsheetWeightMode === "rateado"
-                              ? "bg-[#bda16d] text-[#2d1e08] shadow border border-[#59452b]"
-                              : "text-[#543b24] hover:bg-[#ebd8b1]/50"
+                              ? "bg-[#8C6D3F] text-white shadow-sm"
+                              : "text-[#8C6D3F] hover:bg-[#FAF6EE]/70"
                           }`}
                           title="Exibe o Peso Rateado de cada item listado"
                         >
@@ -1552,81 +1592,73 @@ export default function App() {
                     )}
                   </div>
                   
-                  {/* Brass Key style trigger button */}
+                  {/* Luxury Action style trigger button */}
                   <button
                     onClick={() => copyToClipboard(copyFormat === "products" ? generateSpreadsheetText() : generateLogisticsText())}
-                    className={`px-6 py-4.5 rounded-xl font-bold text-sm shadow-md transition flex items-center gap-3 transform hover:scale-105 active:scale-95 ${
+                    className={`px-6 py-4.5 rounded-xl font-bold text-sm shadow-sm transition-all duration-200 flex items-center gap-3 transform hover:scale-[1.02] active:scale-[0.98] ${
                       copiedInvoice
-                        ? "bg-gradient-to-b from-[#4e5f38] to-[#2b3a1a] text-white border-2 border-[#769159]"
-                        : "bg-gradient-to-b from-[#dfc090] to-[#b08b50] text-[#2c1a0c] border-2 border-[#6b522e] hover:from-[#ecd0a5] hover:to-[#be9b62]"
+                        ? "bg-[#8C6D3F] text-white border border-[#7D5E31]"
+                        : "bg-stone-900 text-stone-100 hover:bg-stone-800 border border-stone-800"
                     }`}
                   >
-                    <span className="text-lg">🔑</span>
                     <span>
-                      {copiedInvoice ? "Texto Copiado!" : "Copiar Texto para Planilha"}
+                      {copiedInvoice ? "✓ Texto Copiado!" : "Copiar Texto para Planilha"}
                     </span>
                   </button>
                 </div>
 
-                {/* Chalkboard Display Area */}
-                <div className="chalkboard-container p-6 rounded-3xl relative">
-                  {/* Visual chalk tray on chalkboard bottom */}
-                  <div className="absolute bottom-[-14px] right-8 bg-[#fcdbb0] px-4 py-1.5 rounded-md border border-[#c49265] text-[10px] font-bold text-[#5c3e21] shadow-md flex items-center space-x-1 select-none">
-                    <span className={`w-3 h-1.5 rounded-full inline-block ${copyFormat === "products" ? "bg-white" : "bg-yellow-400"}`} />
-                    <span>{copyFormat === "products" ? "Giz Branco (Tabela por SKU)" : "Giz Amarelo (Registro de Logística)"}</span>
-                  </div>
-
-                  <div className="overflow-x-auto">
+                {/* Display Area */}
+                <div className="p-6 rounded-3xl relative bg-white/50 border border-[#DECFA4] shadow-sm">
+                  <div className="overflow-x-auto font-sans">
                     <textarea
                       readOnly
                       value={copyFormat === "products" ? generateSpreadsheetText() : generateLogisticsText()}
                       placeholder="Os dados formatados para planilha aparecerão aqui..."
                       rows={copyFormat === "products" && calculatedItems.length ? Math.min(12, Math.max(5, calculatedItems.length)) : 5}
-                      className="w-full bg-[#1e2a22] text-[#fbf5e6] font-mono text-xs leading-6 p-4 rounded-xl border border-white/5 shadow-inner focus:outline-none focus:ring-1 focus:ring-[#8cd0a3] resize-none overflow-y-auto"
-                      style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}
+                      className="w-full bg-[#FAF6EE]/60 text-stone-800 font-mono text-xs leading-6 p-4 rounded-xl border border-[#DECFA4] shadow-inner focus:outline-none focus:ring-1 focus:ring-[#8C6D3F] resize-none overflow-y-auto"
                       onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                       title="Clique para selecionar todo o texto"
                     />
                   </div>
                 </div>
               </div>
+              </>
+              )}
 
             </div>
           )}
 
           {activeTab === "zpl" && (
-            <div className="space-y-8">
+            <div className="space-y-8 animate-fade-in">
               
-              <div className="scroll-parchment p-6 rounded-2xl border-l-8 border-r-8 border-[#cbab86] space-y-4">
-                <div className="absolute -left-3 top-2 bottom-2 w-2.5 bg-[#422518] rounded-full shadow-md" />
-                <div className="absolute -right-3 top-2 bottom-2 w-2.5 bg-[#422518] rounded-full shadow-md" />
+              <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-[#DECFA4] shadow-[0_15px_30px_rgba(188,162,126,0.06)] space-y-4 relative overflow-hidden">
 
                 <div>
-                  <h3 className="font-display font-bold text-2xl text-[#3b1904] flex items-center gap-2">
-                    <Truck className="h-6 w-6 text-[#9a4b27]" />
+                  <h3 className="font-display font-bold text-2xl text-[#8C6D3F] flex items-center gap-2">
+                    <Truck className="h-6 w-6" />
                     Gerador Sequencial de Etiquetas ZPL
                   </h3>
-                  <p className="font-serif italic text-sm text-[#5c3e21] leading-relaxed mt-1">
+                  <p className="text-xs text-stone-500 leading-relaxed mt-1 font-sans">
                     Insira o documento de carga ou de controle para extrair o <b>Transporte</b> (10 dígitos) e o{" "}
                     <b>Lote</b>. O gerador irá criar códigos de etiquetagem automatizados no padrão Zebra ZPL
                     sequencial de 01/X a X/X prontos para impressoras industriais.
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-[#cbab86]/40 pt-4 gap-3 bg-[#e3cca7]/10 p-3 rounded-lg">
-                  <div className="flex space-x-1.5 p-1 bg-[#e3cca7]/40 rounded-lg">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-[#DECFA4]/40 pt-4 gap-3 bg-[#FAF6EE]/30 p-3 rounded-lg">
+                  <div className="flex space-x-1.5 p-1 bg-[#FAF6EE] border border-[#DECFA4] rounded-lg">
                     <button
                       onClick={() => setZplInputType("paste")}
-                      className={`px-4 py-2 text-xs font-bold rounded-md transition ${
-                        zplInputType === "paste" ? "bg-[#4a2e1d] text-white shadow-sm" : "text-[#543b24]"
+                      className={`px-4 py-2 text-xs font-bold rounded-md transition duration-150 ${
+                        zplInputType === "paste" ? "bg-[#8C6D3F] text-white shadow-sm" : "text-[#8C6D3F]"
                       }`}
                     >
                       Digitar ou Colar Texto
                     </button>
                     <button
                       onClick={() => setZplInputType("upload")}
-                      className={`px-4 py-2 text-xs font-bold rounded-md transition ${
-                        zplInputType === "upload" ? "bg-[#4a2e1d] text-white shadow-sm" : "text-[#543b24]"
+                      className={`px-4 py-2 text-xs font-bold rounded-md transition duration-150 ${
+                        zplInputType === "upload" ? "bg-[#8C6D3F] text-white shadow-sm" : "text-[#8C6D3F]"
                       }`}
                     >
                       Importar Certificado ou Imagem
@@ -1636,14 +1668,14 @@ export default function App() {
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={handleClearZpl}
-                      className="px-3 py-1.5 bg-[#8c3527]/90 hover:bg-[#8c3527] text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow"
+                      className="px-3.5 py-1.5 bg-red-50 hover:bg-red-500 hover:text-white text-red-700 rounded-lg text-xs font-bold transition duration-150 flex items-center gap-1.5 active:scale-95"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Limpar Informações
                     </button>
                     <button
                       onClick={handleResetZplDefault}
-                      className="px-3 py-1.5 bg-[#4a2e1d] hover:bg-[#3a2214] text-[#dfc090] rounded-lg text-xs font-bold transition flex items-center gap-1 shadow"
+                      className="px-3.5 py-1.5 bg-stone-900 hover:bg-stone-850 text-stone-100 rounded-lg text-xs font-bold transition duration-150 flex items-center gap-1.5 active:scale-95"
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
                       Restaurar Padrão
@@ -1657,15 +1689,15 @@ export default function App() {
                     onChange={(e) => handleCargoTextChange(e.target.value)}
                     placeholder="Cole aqui o texto do seu documento de carga ou de controle. Exemplo: 
 RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
-                    className="w-full h-28 p-4 bg-white/70 border border-[#bfa483] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4a2e1d]"
+                    className="w-full h-28 p-4 bg-[#FAF6EE]/50 border border-[#DECFA4] rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#8C6D3F]/70 transition"
                   />
                 ) : (
                   <div className="flex flex-col items-center py-4">
-                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#85633a] hover:border-[#4a2e1d] rounded-xl px-8 py-6 cursor-pointer bg-white/50 transition duration-200 group w-full max-w-lg">
+                    <label className="flex flex-col items-center justify-center border border-dashed border-[#C9AF80] hover:border-[#8C6D3F] rounded-xl px-8 py-6 cursor-pointer bg-[#FAF6EE]/30 hover:bg-[#FAF6EE]/60 transition duration-200 group w-full max-w-lg">
                       <div className="flex flex-col items-center space-y-2 text-center">
-                        <Upload className="h-8 w-8 text-[#85633a] group-hover:scale-110 transition" />
-                        <span className="text-sm font-bold text-[#3b1904]">Carregar Documento de Carga</span>
-                        <span className="text-xs text-[#6e5138]">(PDF ou Imagem)</span>
+                        <Upload className="h-8 w-8 text-[#8C6D3F] group-hover:scale-110 transition" />
+                        <span className="text-sm font-bold text-stone-700">Carregar Documento de Carga</span>
+                        <span className="text-xs text-stone-400">(PDF ou Imagem)</span>
                       </div>
                       <input
                         type="file"
@@ -1679,7 +1711,7 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
                 )}
 
                 {zplError && (
-                  <div className="mt-4 p-4 bg-red-100 border-2 border-red-400 text-red-800 rounded-xl text-sm font-sans flex items-center justify-between shadow-md">
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm font-sans flex items-center justify-between shadow-sm">
                     <div className="flex items-center space-x-2">
                       <span className="text-lg">⚠️</span>
                       <span className="font-medium">{zplError}</span>
@@ -1694,11 +1726,11 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
                 )}
               </div>
 
-              {/* Editable manual fields styled within traditional leather panel */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-[#3a2016] p-6 rounded-2xl border-4 border-[#5c3e21] shadow-md text-[#faeed1]">
+              {/* Editable manual fields styled within luxury panel */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-[#DECFA4] shadow-sm text-stone-800">
                 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-[#bfa27a] uppercase tracking-wider block">
+                  <label className="text-xs font-bold text-[#8C6D3F] uppercase tracking-wider block">
                     Transporte (10 Dígitos)
                   </label>
                   <input
@@ -1706,24 +1738,24 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
                     maxLength={10}
                     value={zplCargoData.transporte}
                     onChange={(e) => setZplCargoData({ ...zplCargoData, transporte: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-[#1f110a] text-[#dba275] border-2 border-[#523528] rounded-xl text-sm font-mono font-bold focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-[#FAF6EE] text-[#8C6D3F] border border-[#DECFA4] rounded-lg text-sm font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#8C6D3F]/40"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-[#bfa27a] uppercase tracking-wider block">
+                  <label className="text-xs font-bold text-[#8C6D3F] uppercase tracking-wider block">
                     Lote
                   </label>
                   <input
                     type="text"
                     value={zplCargoData.lote}
                     onChange={(e) => setZplCargoData({ ...zplCargoData, lote: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-[#1f110a] text-[#dba275] border-2 border-[#523528] rounded-xl text-sm font-mono font-bold focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-[#FAF6EE] text-[#8C6D3F] border border-[#DECFA4] rounded-lg text-sm font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#8C6D3F]/40"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-[#bfa27a] uppercase tracking-wider block">
+                  <label className="text-xs font-bold text-[#8C6D3F] uppercase tracking-wider block">
                     Total de Volumes
                   </label>
                   <input
@@ -1734,7 +1766,7 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
                     onChange={(e) =>
                       setZplCargoData({ ...zplCargoData, volumes: parseInt(e.target.value) || undefined })
                     }
-                    className="w-full px-4 py-2.5 bg-[#1f110a] text-[#dba275] border-2 border-[#523528] rounded-xl text-sm font-mono font-bold focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-[#FAF6EE] text-[#8C6D3F] border border-[#DECFA4] rounded-lg text-sm font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#8C6D3F]/40"
                   />
                 </div>
 
@@ -1744,7 +1776,7 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
               <div className="flex justify-end">
                 <button
                   onClick={generateZplLabels}
-                  className="px-6 py-4.5 bg-gradient-to-b from-[#dfc090] to-[#b08b50] text-[#2c1a0c] border-2 border-[#6b522e] rounded-xl shadow-lg font-bold text-sm hover:from-[#ecd0a5] hover:to-[#be9b62] transition duration-200"
+                  className="px-6 py-4 bg-stone-900 hover:bg-stone-850 text-stone-100 rounded-xl shadow-sm font-bold text-sm transition duration-200"
                 >
                   Automatizar Sequência e Gerar ZPL
                 </button>
@@ -1752,43 +1784,43 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
 
               {/* Generated labeled code blocks */}
               {generatedZpls.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 border-t border-[#5e412f]/40">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 border-t border-[#DECFA4]/45">
                   
                   {/* Visual simulated preview of thermal shipping label */}
                   <div className="space-y-3">
-                    <h4 className="font-display font-black text-lg text-[#3b1904]">Simulador de Etiqueta Industrial</h4>
-                    <div className="bg-white border-8 border-double border-[#2c1a0c] p-6 rounded-2xl shadow-inner text-black font-sans relative aspect-[4/3] flex flex-col justify-between max-w-md mx-auto">
+                    <h4 className="font-display font-black text-lg text-[#8C6D3F]">Simulador de Etiqueta Industrial</h4>
+                    <div className="bg-white border-2 border-[#DECFA4] p-6 rounded-2xl shadow-sm text-black font-sans relative aspect-[4/3] flex flex-col justify-between max-w-md mx-auto">
                       
-                      <div className="flex justify-between items-start border-b-4 border-black pb-4">
+                      <div className="flex justify-between items-start border-b-2 border-slate-300 pb-4">
                         <div>
-                          <div className="text-[10px] font-black uppercase tracking-wider">Transportadora Autorizada</div>
-                          <div className="text-xl font-black mt-0.5">CAFÉ TRÊS CORAÇÕES SA</div>
+                          <div className="text-[10px] font-black uppercase tracking-wider text-slate-500">Transportadora Autorizada</div>
+                          <div className="text-lg font-black mt-0.5 text-stone-850">CAFÉ TRÊS CORAÇÕES SA</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-[9px] font-bold">CARGO ID</div>
+                          <div className="text-[9px] font-bold text-slate-500">CARGO ID</div>
                           <div className="text-xs font-black"># {zplCargoData.transporte}</div>
                         </div>
                       </div>
 
                       <div className="my-4 flex justify-between items-center">
                         <div className="space-y-1">
-                          <div className="text-[9px] font-black text-slate-500">LOTE DE EXPEDIÇÃO</div>
-                          <div className="text-lg font-black font-mono bg-slate-100 px-2 py-1 rounded">{zplCargoData.lote}</div>
+                          <div className="text-[9px] font-black text-slate-500 font-sans">LOTE DE EXPEDIÇÃO</div>
+                          <div className="text-base font-black font-mono bg-slate-100 px-2 py-1 rounded">{zplCargoData.lote}</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-[9px] font-black text-slate-500">VOLUME SEQUENCIAL</div>
-                          <div className="text-2xl font-black font-mono">
+                          <div className="text-[9px] font-black text-slate-500 font-sans">VOLUME SEQUENCIAL</div>
+                          <div className="text-xl font-black font-mono">
                             {(selectedZplPreviewIdx + 1).toString().padStart(2, "0")}/{Number(zplCargoData.volumes).toString().padStart(2, "0")}
                           </div>
                         </div>
                       </div>
 
                       {/* Barcode representation */}
-                      <div className="border-t-4 border-black pt-4 flex flex-col items-center">
-                        <div className="w-full h-12 bg-black flex items-center justify-center text-white font-mono text-[9px] tracking-[6px] select-none">
+                      <div className="border-t border-slate-200 pt-4 flex flex-col items-center">
+                        <div className="w-full h-12 bg-stone-900 flex items-center justify-center text-white font-mono text-[9px] tracking-[6px] select-none rounded">
                           BARCODE_{zplCargoData.transporte}
                         </div>
-                        <div className="text-[10px] font-mono mt-1 font-bold">{zplCargoData.transporte}</div>
+                        <div className="text-[10px] font-mono mt-1 font-bold text-stone-650">{zplCargoData.transporte}</div>
                       </div>
 
                     </div>
@@ -1798,19 +1830,19 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
                       <button
                         disabled={selectedZplPreviewIdx <= 0}
                         onClick={() => setSelectedZplPreviewIdx((p) => p - 1)}
-                        className="px-3 py-1.5 text-xs font-bold brass-btn rounded disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs font-bold bg-[#FAF6EE] hover:bg-[#FAF6EE]/80 border border-[#DECFA4] text-[#8C6D3F] rounded transition disabled:opacity-50"
                       >
                         Anterior
                       </button>
-                      <span className="text-xs font-bold text-[#5c3e21]">
+                      <span className="text-xs font-bold text-stone-500 font-sans">
                         Etiqueta {selectedZplPreviewIdx + 1} de {generatedZpls.length}
                       </span>
                       <button
                         disabled={selectedZplPreviewIdx >= generatedZpls.length - 1}
                         onClick={() => setSelectedZplPreviewIdx((p) => p + 1)}
-                        className="px-3 py-1.5 text-xs font-bold brass-btn rounded disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs font-bold bg-[#FAF6EE] hover:bg-[#FAF6EE]/80 border border-[#DECFA4] text-[#8C6D3F] rounded transition disabled:opacity-50"
                       >
-                        Siguiente
+                        Próximo
                       </button>
                     </div>
 
@@ -1819,11 +1851,13 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
                   {/* Complete raw code panel */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-display font-black text-lg text-[#3b1904]">Código ZPL Completo</h4>
+                      <h4 className="font-display font-black text-lg text-[#8C6D3F]">Código ZPL Completo</h4>
                       <button
                         onClick={() => copyToClipboard(generatedZpls.join("\n\n"), true)}
-                        className={`px-4 py-2 text-xs font-bold rounded transition ${
-                          copiedZpl ? "bg-[#3e4d2b] text-white" : "brass-btn"
+                        className={`px-4 py-2 text-xs font-bold rounded transition duration-150 ${
+                          copiedZpl 
+                            ? "bg-[#8C6D3F] text-white" 
+                            : "bg-stone-900 hover:bg-stone-850 text-stone-100 shadow-sm"
                         }`}
                       >
                         {copiedZpl ? "Copiado!" : "Copiar Todo o ZPL"}
@@ -1833,7 +1867,7 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
                     <textarea
                       readOnly
                       value={generatedZpls.join("\n\n")}
-                      className="w-full h-80 p-4 bg-[#111] text-emerald-400 font-mono text-xs rounded-xl border-4 border-[#523528] focus:outline-none"
+                      className="w-full h-80 p-4 bg-[#FAF6EE]/40 text-stone-800 border border-[#DECFA4] font-mono text-xs rounded-xl focus:outline-none"
                     />
                   </div>
 
@@ -1844,10 +1878,10 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
           )}
         </div>
 
-        <footer className="pt-8 border-t border-[#5e412f]/30 text-center text-[11px] text-[#785945]">
+        <footer className="pt-8 border-t border-[#DECFA4]/50 text-center text-[11px] text-stone-400">
           <p>© 2026 Três Corações Logística S/A. Todos os direitos reservados.</p>
-          <p className="mt-1">Desenvolvido com robustez e design skeuomorphic para automação de expedições industriais.</p>
-          <p className="mt-2.5 font-bold text-xs text-[#5e3820] uppercase tracking-wider">Criado por Jefferson Augusto</p>
+          <p className="mt-1">Desenvolvido com alta precisão e minimalismo para automação de expedições industriais.</p>
+          <p className="mt-2.5 font-bold text-xs bg-clip-text text-transparent bg-gradient-to-r from-[#C9AF80] to-[#8C6D3F] uppercase tracking-wider">Criado por Jefferson Augusto</p>
         </footer>
 
       </div>
