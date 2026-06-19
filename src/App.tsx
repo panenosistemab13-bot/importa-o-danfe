@@ -51,7 +51,7 @@ function Odometer({ value, label, maxDigitCount = 10 }: { value: string | number
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<"invoice" | "zpl">("invoice");
-  const [zoomLevel, setZoomLevel] = useState<number>(100); // 100% by default now that zoom bar is removed
+  const [zoomLevel, setZoomLevel] = useState<number>(70); // Decreased zoom by default
   const [copyFormat, setCopyFormat] = useState<"products" | "logistics">("products");
 
   // State for Invoice processing
