@@ -8,17 +8,30 @@
     <script>
       // Suprimir erros de Script Error globais que poluem e atrapalham o ambiente
       window.onerror = function(message, source, lineno, colno, error) {
-        if (message === "Script error." || (source && source.indexOf('pdf.js') !== -1) || (source && source.indexOf('pdf.worker.min.js') !== -1)) {
+        var msg = String(message || "");
+        if (msg.indexOf("Script error") !== -1 || msg.indexOf("Script error.") !== -1 || (source && (source.indexOf('pdf.js') !== -1 || source.indexOf('pdf.worker') !== -1))) {
           console.warn('Suprimido erro CORS externo ou de biblioteca de terceiros:', message, source);
           return true; // Evita que o erro propague e acione alertas globais de sandbox
         }
         return false;
       };
 
-      window.addEventListener('unhandledrejection', function(e) {
-        console.warn('Capturada rejeição de promise global não tratada:', e.reason);
-        if (e.reason && (e.reason.message === 'Script error.' || e.reason.message === 'Script error')) {
+      window.addEventListener('error', function(e) {
+        var msg = String(e.message || "");
+        if (msg.indexOf("Script error") !== -1 || msg.indexOf("Script error.") !== -1) {
           e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function(e) {
+        var reasonStr = "";
+        if (e.reason) {
+          reasonStr = typeof e.reason === "string" ? e.reason : (e.reason.message || "");
+        }
+        if (reasonStr.indexOf("Script error") !== -1 || reasonStr.indexOf("Script error.") !== -1) {
+          e.preventDefault();
+          e.stopPropagation();
         }
       });
     </script>
