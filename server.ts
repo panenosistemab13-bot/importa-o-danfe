@@ -156,34 +156,43 @@ app.post("/api/parse-invoice", upload.single("file"), async (req, res) => {
 
     // --- LOGICA DE REGEX PARA ENCONTRAR OS DADOS DA NOTA ---
     
-    // 1. Número da Nota Fiscal (com contingência e busca por proximidade)
+    // 1. Número da Nota Fiscal (com contingência e busca por proximidade, agrupando se houver mais de uma)
     let invoiceNumber = "";
-    const nfMatchesPriority = [
-      /(?:NF-e\s+N[ºoº]?|DANFE\s+N[ºoº]?|DANFE\D*N[ºoº]?)\s*[:.\s]*(\d{1,3}(?:\.\d{3}){2}|\d{3,9})/i,
-      /(?:N[ºoº]\s*\.?|N[uú]mero\s*[:.]?)\s*[:.\s]*(\d{1,3}(?:\.\d{3}){2}|\d{3,9})/i,
-      /(?:NOTA\s+FISCAL)\s+N[ºoº]?\s*[:.\s]*(\d{3,9})/i,
-      /\b(\d{3}\.\d.2\.\d{3})\b/
+    const uniqueInvoiceNumbers: string[] = [];
+    
+    const nfMatchesPriorityGlobal = [
+      /(?:NF-e\s+N[ºoº]?|DANFE\s+N[ºoº]?|DANFE\D*N[ºoº]?)\s*[:.\s]*(\d{1,3}(?:\.\d{3}){2}|\d{3,9})/gi,
+      /(?:N[ºoº]\s*\.?|N[uú]mero\s*[:.]?)\s*[:.\s]*(\d{1,3}(?:\.\d{3}){2}|\d{3,9})/gi,
+      /(?:NOTA\s+FISCAL)\s+N[ºoº]?\s*[:.\s]*(\d{3,9})/gi,
     ];
 
-    for (const regex of nfMatchesPriority) {
-      const match = text.match(regex);
-      if (match && match[1]) {
-        const cleaned = match[1].replace(/\D/g, "").replace(/^0+/, "");
-        if (cleaned.length >= 4) {
-          invoiceNumber = cleaned;
-          break;
+    for (const regex of nfMatchesPriorityGlobal) {
+      const matches = Array.from(text.matchAll(regex));
+      for (const match of matches) {
+        if (match && match[1]) {
+          const cleaned = match[1].replace(/\D/g, "").replace(/^0+/, "");
+          if (cleaned.length >= 4 && !uniqueInvoiceNumbers.includes(cleaned)) {
+            uniqueInvoiceNumbers.push(cleaned);
+          }
         }
       }
+    }
+
+    if (uniqueInvoiceNumbers.length > 0) {
+      invoiceNumber = uniqueInvoiceNumbers.join("/");
     }
 
     if (!invoiceNumber) {
       const potentialNumbers = text.match(/\b\d{6,9}\b/g) || [];
       for (const num of potentialNumbers) {
         if (num === "2024" || num === "2025" || num === "2026") continue;
-        if (num.length >= 6) {
-          invoiceNumber = num.replace(/^0+/, "");
-          break;
+        const cleaned = num.replace(/^0+/, "");
+        if (cleaned.length >= 6 && !uniqueInvoiceNumbers.includes(cleaned)) {
+          uniqueInvoiceNumbers.push(cleaned);
         }
+      }
+      if (uniqueInvoiceNumbers.length > 0) {
+        invoiceNumber = uniqueInvoiceNumbers.join("/");
       }
     }
 
