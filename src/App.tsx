@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ProductItem, InvoiceData, DistributionMode, WeightTarget, ZplCargoData } from "./types";
-import { nomesPadrao, pesosProdPadrao } from "./constants";
 
 // Helper component to render beautiful high-precision golden/cream dials
 function Odometer({ value, label, maxDigitCount = 10 }: { value: string | number; label: string; maxDigitCount?: number }) {
@@ -199,7 +198,7 @@ export default function App() {
         const qtyCol = `${item.quantity} ${item.unit}`;
         
         let weightCol = "";
-        if (invoiceData.invoiceNumber.includes("2958319")) {
+        if (invoiceData.invoiceNumber === "2958319") {
           // Para a nota 2958319, as linhas possuem seus pesos individuais reais declarados no faturamento
           weightCol = `${formatWeight(item.calculatedWeight || 0)}${useKgSuffix ? " KG" : ""}`;
         } else if (spreadsheetWeightMode === "bruto_total") {
@@ -294,103 +293,94 @@ export default function App() {
 
   // Real-time client side PDF Parser
   const handleInvoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []) as File[];
-    if (files.length === 0) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     setLoadingInvoice(true);
     setInvoiceError(null);
 
     try {
-      const textoCompletoArr: string[] = [];
-      const allReconstructedLines: string[] = [];
+      let textoCompleto = "";
+      let allReconstructedLines: string[] = [];
 
-      for (const file of files) {
-        let fileText = "";
-        let fileLines: string[] = [];
-
-        if (file.type.startsWith("image/")) {
-          // Se for imagem, utilizamos Tesseract.js para OCR dinamicamente
-          const Tesseract = (await import("tesseract.js")).default;
-          const result = await Tesseract.recognize(file, "por", {
-            logger: m => console.log(m)
-          });
-          fileLines = result.data.text.split("\n").map(l => l.trim()).filter(Boolean);
-          fileText = fileLines.join("\n");
-        } else {
-          // Lógica de parsing de PDF original
-          const pdfjsLib = (window as any).pdfjsLib;
-          if (!pdfjsLib) {
-            throw new Error("A biblioteca PDF.js não está carregada ainda. Por favor, aguarde.");
-          }
-
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
-          const readAsArrayBuffer = (f: File): Promise<ArrayBuffer> => {
-            return new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                if (event.target?.result instanceof ArrayBuffer) {
-                  resolve(event.target.result);
-                } else {
-                  reject(new Error("Não foi possível ler o arquivo PDF em buffer."));
-                }
-              };
-              reader.onerror = (err) => reject(err);
-              reader.readAsArrayBuffer(f);
-            });
-          };
-
-          const arrayBuffer = await readAsArrayBuffer(file);
-          const typedarray = new Uint8Array(arrayBuffer);
-
-          const pdf = await pdfjsLib.getDocument(typedarray).promise;
-          
-          const reconstructLines = (items: any[]): string[] => {
-            if (!items || items.length === 0) return [];
-
-            const validItems = items.filter(
-              (item) => item && typeof item.str === "string" && item.str.trim() !== ""
-            );
-
-            if (validItems.length === 0) return [];
-
-            const tolerance = 7; 
-            const linesList: { y: number; items: any[] }[] = [];
-
-            validItems.forEach((item) => {
-              const y = item.transform[5]; 
-              
-              let foundLine = linesList.find((line) => Math.abs(line.y - y) <= tolerance);
-              if (foundLine) {
-                foundLine.items.push(item);
-                foundLine.y = (foundLine.y * (foundLine.items.length - 1) + y) / foundLine.items.length;
-              } else {
-                linesList.push({ y, items: [item] });
-              }
-            });
-
-            linesList.sort((a, b) => b.y - a.y);
-
-            return linesList.map((line) => {
-              line.items.sort((a, b) => a.transform[4] - b.transform[4]);
-              return line.items.map((item) => item.str).join(" ");
-            });
-          };
-
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageLines = reconstructLines(textContent.items);
-            fileLines.push(...pageLines);
-          }
-
-          fileText = fileLines.join("\n");
+      if (file.type.startsWith("image/")) {
+        // Se for imagem, utilizamos Tesseract.js para OCR dinamicamente
+        const Tesseract = (await import("tesseract.js")).default;
+        const result = await Tesseract.recognize(file, "por", {
+          logger: m => console.log(m)
+        });
+        allReconstructedLines = result.data.text.split("\n").map(l => l.trim()).filter(Boolean);
+        textoCompleto = allReconstructedLines.join("\n");
+      } else {
+        // Lógica de parsing de PDF original
+        const pdfjsLib = (window as any).pdfjsLib;
+        if (!pdfjsLib) {
+          throw new Error("A biblioteca PDF.js não está carregada ainda. Por favor, aguarde.");
         }
-        allReconstructedLines.push(...fileLines);
-        textoCompletoArr.push(fileText);
-      }
 
-      const textoCompleto = textoCompletoArr.join("\n--- SPLIT_NOTE ---\n");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        const readAsArrayBuffer = (f: File): Promise<ArrayBuffer> => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              if (event.target?.result instanceof ArrayBuffer) {
+                resolve(event.target.result);
+              } else {
+                reject(new Error("Não foi possível ler o arquivo PDF em buffer."));
+              }
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsArrayBuffer(f);
+          });
+        };
+
+        const arrayBuffer = await readAsArrayBuffer(file);
+        const typedarray = new Uint8Array(arrayBuffer);
+
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        
+        const reconstructLines = (items: any[]): string[] => {
+          if (!items || items.length === 0) return [];
+
+          const validItems = items.filter(
+            (item) => item && typeof item.str === "string" && item.str.trim() !== ""
+          );
+
+          if (validItems.length === 0) return [];
+
+          const tolerance = 7; 
+          const linesList: { y: number; items: any[] }[] = [];
+
+          validItems.forEach((item) => {
+            const y = item.transform[5]; 
+            
+            let foundLine = linesList.find((line) => Math.abs(line.y - y) <= tolerance);
+            if (foundLine) {
+              foundLine.items.push(item);
+              foundLine.y = (foundLine.y * (foundLine.items.length - 1) + y) / foundLine.items.length;
+            } else {
+              linesList.push({ y, items: [item] });
+            }
+          });
+
+          linesList.sort((a, b) => b.y - a.y);
+
+          return linesList.map((line) => {
+            line.items.sort((a, b) => a.transform[4] - b.transform[4]);
+            return line.items.map((item) => item.str).join(" ");
+          });
+        };
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageLines = reconstructLines(textContent.items);
+          allReconstructedLines.push(...pageLines);
+        }
+
+        textoCompleto = allReconstructedLines.join("\n");
+      }
 
       // --- LÓGICA DE EXTRAÇÃO DOS DADOS REAIS DO DANFE ---
 
@@ -854,22 +844,22 @@ export default function App() {
       // --- CASO 4: PARSER DINÂMICO ---
       else {
         // EXTRAÇÃO DINÂMICA DO NÚMERO DA NOTA FISCAL
-        const matchNotaArray = Array.from(textoCompleto.matchAll(/(?:No\.00|N[º°]|N\.º|No\.|N\s00)\s*(\d+)/gi));
-        const numList = matchNotaArray.map(m => parseInt(m[1], 10).toString());
-        const uniqueNumList = Array.from(new Set(numList));
-        numeroNota = uniqueNumList.length > 0 ? uniqueNumList.join("/") : "SEM_NOTA";
+        numeroNota = "SEM_NOTA";
+        const matchNota = textoCompleto.match(/(?:No\.00|N[º°]|N\.º|No\.|N\s00)\s*(\d+)/i);
+        if (matchNota) {
+          numeroNota = parseInt(matchNota[1], 10).toString();
+        }
 
         // EXTRAÇÃO DINÂMICA DO PESO BRUTO TOTAL DA NOTA
-        const matchPesoAll = Array.from(textoCompleto.matchAll(/(?:PESO\s+BRUTO(?:\s*\(KG\))?)\s*([\d\.,\s]+)/gi));
-        let totalPesoSum = 0;
-        matchPesoAll.forEach(m => {
-          let pesoStr = m[1].trim().split(/\s+/)[0];
-          pesoStr = pesoStr.replace(/\./g, "").replace(",", ".");
-          const val = parseFloat(pesoStr) || 0;
-          totalPesoSum += val;
-        });
-        
-        let pesoBrutoTotal = totalPesoSum > 0 ? totalPesoSum.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + " KG" : "0,000 KG";
+        pesoBrutoTotal = "0,000 KG";
+        const matchPeso = textoCompleto.match(/(?:PESO\s+BRUTO(?:\s*\(KG\))?)\s*([\d\.,\s]+)/i);
+        if (matchPeso) {
+          let pesoExtraido = matchPeso[1].trim().split(/\s+/)[0];
+          if (pesoExtraido.includes(".") && !pesoExtraido.includes(",")) {
+            pesoExtraido = pesoExtraido.replace(".", ",");
+          }
+          pesoBrutoTotal = pesoExtraido + (pesoExtraido.toLowerCase().includes("kg") ? "" : " KG");
+        }
 
         // VARREDURA AUTOMÁTICA DE SKUs
         const regexGeralSKU = /(?:^|\s)(\d{8})(?:\s+)([A-Z0-9\s\/\.\-\(\)\,\+]+?)(?:\s+)(\d+)\s+(?:CX|UN|FD|KG)/gi;
@@ -890,11 +880,7 @@ export default function App() {
             unit = "FD";
           }
 
-          // Identificar o índice do arquivo para permitir linhas idênticas vindas de arquivos separados
-          const textBeforeMatch = textoCompleto.slice(0, match.index);
-          const fileIndex = (textBeforeMatch.match(/--- SPLIT_NOTE ---/g) || []).length;
-
-          const lineKey = `${fileIndex}-${sku}-${quantity}-${unit}`;
+          const lineKey = `${sku}-${quantity}-${unit}`;
           if (lineKeys.has(lineKey)) continue;
           lineKeys.add(lineKey);
 
@@ -1549,7 +1535,6 @@ export default function App() {
                       accept=".pdf,image/png,image/jpeg,image/jpg"
                       onChange={handleInvoiceUpload}
                       disabled={loadingInvoice}
-                      multiple
                     />
                     
                     {/* Embedded custom premium gold quill SVG icon */}
