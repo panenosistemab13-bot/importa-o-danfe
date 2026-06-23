@@ -56,7 +56,6 @@ export default function App() {
 
   // State for Invoice processing
   const [loadingInvoice, setLoadingInvoice] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState<string>("");
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
   const [weightTarget, setWeightTarget] = useState<WeightTarget>("gross");
@@ -292,131 +291,17 @@ export default function App() {
     return "application/pdf"; // fallback
   };
 
-  // Merges multiple parsed invoices into a combined invoice representation
-  const mergeInvoices = (invoices: InvoiceData[]): InvoiceData => {
-    if (invoices.length === 0) {
-      return {
-        invoiceNumber: "",
-        totalGrossWeight: 0,
-        totalNetWeight: 0,
-        items: []
-      };
-    }
-    if (invoices.length === 1) return invoices[0];
-
-    const numbersArray = invoices
-      .map(i => i.invoiceNumber ? i.invoiceNumber.trim() : "")
-      .filter(Boolean);
-    const uniqueInvoiceNumbers = Array.from(new Set(numbersArray));
-    const invoiceNumber = uniqueInvoiceNumbers.join("/");
-
-    const totalGrossWeight = parseFloat(invoices.reduce((sum, i) => sum + (i.totalGrossWeight || 0), 0).toFixed(3));
-    const totalNetWeight = parseFloat(invoices.reduce((sum, i) => sum + (i.totalNetWeight || 0), 0).toFixed(3));
-
-    const itemsMap = new Map<string, ProductItem>();
-    
-    invoices.forEach(inv => {
-      inv.items.forEach(item => {
-        const itemCode = (item.code || "").trim();
-        if (!itemCode) return;
-        
-        const existing = itemsMap.get(itemCode);
-        if (existing) {
-          const newQty = existing.quantity + item.quantity;
-          const newValueTotal = (existing.valueTotal || 0) + (item.valueTotal || 0);
-          const newValueUnit = newQty > 0 ? parseFloat((newValueTotal / newQty).toFixed(2)) : existing.valueUnit;
-          
-          itemsMap.set(itemCode, {
-            ...existing,
-            quantity: newQty,
-            valueTotal: newValueTotal,
-            valueUnit: newValueUnit,
-            calculatedWeight: parseFloat(((existing.calculatedWeight || 0) + (item.calculatedWeight || 0)).toFixed(3))
-          });
-        } else {
-          itemsMap.set(itemCode, { ...item });
-        }
-      });
-    });
-
-    const mergedItems = Array.from(itemsMap.values());
-
-    const emitentes = Array.from(new Set(invoices.map(i => i.emitente).filter(Boolean)));
-    const emitente = emitentes.join(" / ") || "CAFE TRES CORACOES SA";
-
-    const destinos = Array.from(new Set(invoices.map(i => i.destino).filter(Boolean)));
-    const destino = destinos.join(" / ") || "RIO DE JANEIRO";
-
-    const dataEmissao = Array.from(new Set(invoices.map(i => i.dataEmissao).filter(Boolean))).join(" / ") || "10/06/2026";
-    const placaCavalo = Array.from(new Set(invoices.map(i => i.placaCavalo).filter(Boolean))).join(" / ") || "TYT-8A14";
-    const placaCarreta = Array.from(new Set(invoices.map(i => i.placaCarreta).filter(Boolean))).join(" / ") || "QOX-3164";
-    const observacoes = Array.from(new Set(invoices.map(i => i.observacoes).filter(Boolean))).join(" | ") || "DEIXAR ESPACO DE 6 PALETES";
-
-    return {
-      invoiceNumber,
-      totalGrossWeight,
-      totalNetWeight,
-      items: mergedItems,
-      dataEmissao,
-      emitente,
-      destino,
-      placaCavalo,
-      placaCarreta,
-      observacoes,
-      rawGrossWeightStr: totalGrossWeight.toString()
-    };
-  };
-
   // Real-time client side PDF Parser
   const handleInvoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     setLoadingInvoice(true);
     setInvoiceError(null);
-    setLoadingProgress("Iniciando...");
 
     try {
-      const parsedInvoices: InvoiceData[] = [];
-
-      for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
-        const file = files[fileIndex];
-        setLoadingProgress(`Lendo arquivo ${fileIndex + 1} de ${files.length}: ${file.name}`);
-        let currentInvoice: InvoiceData | null = null;
-
-        // Tenta fazer o processamento robusto no servidor Express primeiro para evitar erros de Web Worker / CORS no iframe do navegador
-        try {
-          const formData = new FormData();
-          formData.append("file", file);
-          const serverRes = await fetch("/api/parse-invoice", {
-            method: "POST",
-            body: formData,
-          });
-          if (serverRes.ok) {
-            const data = await serverRes.json();
-            if (data && data.success) {
-              currentInvoice = {
-                invoiceNumber: data.invoiceNumber || "",
-                totalGrossWeight: data.totalGrossWeight || 0,
-                totalNetWeight: data.totalNetWeight || 0,
-                items: data.items || [],
-                dataEmissao: data.dataEmissao,
-                emitente: data.emitente,
-                destino: data.destino,
-                placaCavalo: data.placaCavalo,
-                placaCarreta: data.placaCarreta,
-                observacoes: data.observacoes,
-                rawGrossWeightStr: data.rawGrossWeightStr
-              };
-            }
-          }
-        } catch (serverErr) {
-          console.warn("Servidor indisponível ou erro no processamento backend. Usando fallback de cliente...", serverErr);
-        }
-
-        if (!currentInvoice) {
-          let textoCompleto = "";
-          let allReconstructedLines: string[] = [];
+      let textoCompleto = "";
+      let allReconstructedLines: string[] = [];
 
       if (file.type.startsWith("image/")) {
         // Se for imagem, utilizamos Tesseract.js para OCR dinamicamente
@@ -427,52 +312,13 @@ export default function App() {
         allReconstructedLines = result.data.text.split("\n").map(l => l.trim()).filter(Boolean);
         textoCompleto = allReconstructedLines.join("\n");
       } else {
-        // Lógica de parsing de PDF original com carregamento dinâmico sob demanda para evitar erros de inicialização
-        let pdfjsLib = (window as any).pdfjsLib;
+        // Lógica de parsing de PDF original
+        const pdfjsLib = (window as any).pdfjsLib;
         if (!pdfjsLib) {
-          try {
-            await new Promise<void>((resolve, reject) => {
-              const script = document.createElement("script");
-              script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js";
-              script.onload = () => {
-                pdfjsLib = (window as any).pdfjsLib;
-                resolve();
-              };
-              script.onerror = () => {
-                const backupScript = document.createElement("script");
-                backupScript.src = "https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.min.js";
-                backupScript.onload = () => {
-                  pdfjsLib = (window as any).pdfjsLib;
-                  resolve();
-                };
-                backupScript.onerror = () => reject(new Error("Não foi possível carregar o PDF.js."));
-                document.head.appendChild(backupScript);
-              };
-              document.head.appendChild(script);
-            });
-          } catch (loadErr) {
-            console.error("Erro ao carregar dinamicamente biblioteca de PDF do cliente:", loadErr);
-            throw new Error("Não foi possível inicializar a biblioteca de leitura de arquivos PDF do lado do cliente.");
-          }
+          throw new Error("A biblioteca PDF.js não está carregada ainda. Por favor, aguarde.");
         }
 
-        if (!pdfjsLib) {
-          throw new Error("A biblioteca PDF.js não pôde ser injetada. Por favor, tente novamente.");
-        }
-
-        try {
-          const workerUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-          const r = await fetch(workerUrl);
-          if (r.ok) {
-            const blob = await r.blob();
-            pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
-          } else {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
-          }
-        } catch (e) {
-          console.warn("Falha ao criar blob worker, usando URL original:", e);
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-        }
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
         const readAsArrayBuffer = (f: File): Promise<ArrayBuffer> => {
           return new Promise((resolve, reject) => {
@@ -997,31 +843,11 @@ export default function App() {
       }
       // --- CASO 4: PARSER DINÂMICO ---
       else {
-        // EXTRAÇÃO DINÂMICA DO NÚMERO DA NOTA FISCAL (agrupando com / se houver mais de uma)
+        // EXTRAÇÃO DINÂMICA DO NÚMERO DA NOTA FISCAL
         numeroNota = "SEM_NOTA";
-        const matchesNota = Array.from(textoCompleto.matchAll(/(?:No\.00|N[º°]|N\.º|No\.|N\s00)\s*(\d+)/gi));
-        if (matchesNota.length > 0) {
-          const uniqueNotes = Array.from(new Set(matchesNota.map(m => parseInt(m[1], 10).toString())));
-          numeroNota = uniqueNotes.join("/");
-        } else {
-          const matchNota = textoCompleto.match(/(?:No\.00|N[º°]|N\.º|No\.|N\s00)\s*(\d+)/i);
-          if (matchNota) {
-            numeroNota = parseInt(matchNota[1], 10).toString();
-          } else {
-            // Fallback: buscar sequências de 6 a 9 dígitos que não sejam anos e representem notas
-            const potentialNumbers = textoCompleto.match(/\b\d{6,9}\b/g) || [];
-            const uniqueNotes: string[] = [];
-            for (const num of potentialNumbers) {
-              if (num === "2024" || num === "2025" || num === "2026") continue;
-              const cleaned = num.replace(/^0+/, "");
-              if (cleaned.length >= 6 && !uniqueNotes.includes(cleaned)) {
-                uniqueNotes.push(cleaned);
-              }
-            }
-            if (uniqueNotes.length > 0) {
-              numeroNota = uniqueNotes.join("/");
-            }
-          }
+        const matchNota = textoCompleto.match(/(?:No\.00|N[º°]|N\.º|No\.|N\s00)\s*(\d+)/i);
+        if (matchNota) {
+          numeroNota = parseInt(matchNota[1], 10).toString();
         }
 
         // EXTRAÇÃO DINÂMICA DO PESO BRUTO TOTAL DA NOTA
@@ -1175,45 +1001,30 @@ export default function App() {
         }
       }
 
-        // Alimenta os estados do React com a Invoice mapeada
-        const parsedInvoiceData: InvoiceData = {
-          invoiceNumber: numeroNota,
-          totalGrossWeight: numericWeight,
-          totalNetWeight: numericWeight,
-          items: itemsList,
-          dataEmissao,
-          emitente,
-          destino,
-          placaCavalo,
-          placaCarreta,
-          observacoes,
-          rawGrossWeightStr: pesoBrutoTotal.replace(" KG", "").trim()
-        };
+      // Alimenta os estados do React com a Invoice mapeada
+      const parsedInvoiceData: InvoiceData = {
+        invoiceNumber: numeroNota,
+        totalGrossWeight: numericWeight,
+        totalNetWeight: numericWeight,
+        items: itemsList,
+        dataEmissao,
+        emitente,
+        destino,
+        placaCavalo,
+        placaCarreta,
+        observacoes,
+        rawGrossWeightStr: pesoBrutoTotal.replace(" KG", "").trim()
+      };
 
-        currentInvoice = parsedInvoiceData;
-      }
+      setInvoiceData(parsedInvoiceData);
+      setDistributionMode("proportional");
 
-      if (currentInvoice) {
-        parsedInvoices.push(currentInvoice);
-      } else {
-        throw new Error(`Não foi possível carregar ou processar o arquivo: ${file.name}`);
-      }
+    } catch (err: any) {
+      setInvoiceError(err.message || "Erro no processamento local do PDF.");
+    } finally {
+      setLoadingInvoice(false);
     }
-
-    if (parsedInvoices.length === 0) {
-      throw new Error("Nenhum arquivo de Nota Fiscal foi extraído.");
-    }
-
-    const finalInvoiceData = mergeInvoices(parsedInvoices);
-    setInvoiceData(finalInvoiceData);
-    setDistributionMode("proportional");
-
-  } catch (err: any) {
-    setInvoiceError(err.message || "Erro no processamento local do PDF.");
-  } finally {
-    setLoadingInvoice(false);
-  }
-};
+  };
 
   const handleClearInvoice = () => {
     setInvoiceData({
@@ -1724,46 +1535,34 @@ export default function App() {
                       accept=".pdf,image/png,image/jpeg,image/jpg"
                       onChange={handleInvoiceUpload}
                       disabled={loadingInvoice}
-                      multiple
                     />
                     
-                    {loadingInvoice ? (
-                      <div className="flex flex-col items-center justify-center p-4">
-                        {/* Premium spinning loader */}
-                        <div className="w-12 h-12 border-4 border-[#C5A880]/20 border-t-[#8C6D3F] rounded-full animate-spin mb-4" />
-                        <h4 className="font-sans font-medium text-lg text-[#5c4a37] tracking-wider animate-pulse">Lendo Documentos...</h4>
-                        <p className="text-xs text-[#a38b6d] font-normal mt-1">{loadingProgress || "Analisando..."}</p>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Embedded custom premium gold quill SVG icon */}
-                        <div className="mb-4 transform group-hover:scale-105 transition-all duration-300">
-                          <svg width="60" height="60" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#BEA27E]">
-                            {/* Elegant document base */}
-                            <rect x="18" y="10" width="28" height="38" rx="4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                            <path d="M34 10H46V22L34 10Z" fill="currentColor" fillOpacity="0.2" />
-                            {/* Little heart representing Três Corações logo on the document */}
-                            <path d="M32 31 C32 29.8, 31 29, 30 29 C29 29, 28 29.8, 28 31 C28 32.5, 30 34, 32 35 C34 34, 36 32.5, 36 31 C36 29.8, 35 29, 34 29 C33 29, 32 29.8, 32 31Z" fill="#C5A880" />
-                            {/* Lines on paper */}
-                            <line x1="24" y1="20" x2="32" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            <line x1="24" y1="25" x2="36" y2="25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            {/* Elegant Quill Feather pen overlapping */}
-                            <path d="M48 14 C44 22, 38 32, 22 46 C20.5 47.5, 18 48, 16 48 C16 46, 16.5 43.5, 18 42 C32 26, 42 20, 48 14 Z" fill="url(#goldGradient)" stroke="currentColor" strokeWidth="1.5" />
-                            <path d="M22 46 L20 44" stroke="currentColor" strokeWidth="1.5" />
-                            <defs>
-                              <linearGradient id="goldGradient" x1="16" y1="48" x2="48" y2="14" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stopColor="#8C6D3F" />
-                                <stop offset="50%" stopColor="#C5A880" />
-                                <stop offset="100%" stopColor="#E6D3B6" />
-                              </linearGradient>
-                            </defs>
-                          </svg>
-                        </div>
+                    {/* Embedded custom premium gold quill SVG icon */}
+                    <div className="mb-4 transform group-hover:scale-105 transition-all duration-300">
+                      <svg width="60" height="60" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#BEA27E]">
+                        {/* Elegant document base */}
+                        <rect x="18" y="10" width="28" height="38" rx="4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                        <path d="M34 10H46V22L34 10Z" fill="currentColor" fillOpacity="0.2" />
+                        {/* Little heart representing Três Corações logo on the document */}
+                        <path d="M32 31 C32 29.8, 31 29, 30 29 C29 29, 28 29.8, 28 31 C28 32.5, 30 34, 32 35 C34 34, 36 32.5, 36 31 C36 29.8, 35 29, 34 29 C33 29, 32 29.8, 32 31Z" fill="#C5A880" />
+                        {/* Lines on paper */}
+                        <line x1="24" y1="20" x2="32" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        <line x1="24" y1="25" x2="36" y2="25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        {/* Elegant Quill Feather pen overlapping */}
+                        <path d="M48 14 C44 22, 38 32, 22 46 C20.5 47.5, 18 48, 16 48 C16 46, 16.5 43.5, 18 42 C32 26, 42 20, 48 14 Z" fill="url(#goldGradient)" stroke="currentColor" strokeWidth="1.5" />
+                        <path d="M22 46 L20 44" stroke="currentColor" strokeWidth="1.5" />
+                        <defs>
+                          <linearGradient id="goldGradient" x1="16" y1="48" x2="48" y2="14" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#8C6D3F" />
+                            <stop offset="50%" stopColor="#C5A880" />
+                            <stop offset="100%" stopColor="#E6D3B6" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    </div>
 
-                        <h4 className="font-sans font-medium text-lg text-[#5c4a37] tracking-wider font-semibold">Importar Notas</h4>
-                        <p className="text-xs text-[#a38b6d] font-normal mt-1">(Selecione um ou vários arquivos PDF/Imagem)</p>
-                      </>
-                    )}
+                    <h4 className="font-sans font-medium text-lg text-[#5c4a37] tracking-wider">Importar</h4>
+                    <p className="text-xs text-[#a38b6d] font-normal mt-1">(PDF ou Imagem)</p>
                   </label>
                 </div>
               </div>
@@ -2104,8 +1903,9 @@ RECEPÇÃO DO TRANSPORTE: 2600295733 / LOTE DE CARGA: 15389.740..."
         </div>
 
         <footer className="pt-8 border-t border-[#DECFA4]/50 text-center text-[11px] text-stone-400">
-          <p>© 2026 Jefferson Augusto. Todos os direitos reservados.</p>
+          <p>© 2026 Três Corações Logística S/A. Todos os direitos reservados.</p>
           <p className="mt-1">Desenvolvido com alta precisão e minimalismo para automação de expedições industriais.</p>
+          <p className="mt-2.5 font-bold text-xs bg-clip-text text-transparent bg-gradient-to-r from-[#C9AF80] to-[#8C6D3F] uppercase tracking-wider">Criado por Jefferson Augusto</p>
         </footer>
 
       </div>
